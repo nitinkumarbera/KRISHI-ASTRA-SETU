@@ -1,0 +1,97 @@
+/* ============================================================
+   Krishi Astra Setu — Global Stylesheet (Tailwind v4)
+   ============================================================ */
+
+/* ── Google Fonts ─────────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap");
+
+/* ── Tailwind v4 ─────────────────────────────────────────── */
+@import "tailwindcss";
+
+/* ── Tailwind v4 Theme (replaces tailwind.config.js colors) ─ */
+@theme {
+  --font-sans: "Inter", "Poppins", ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary-dark: #2E7D32;
+  --color-primary-medium: #388E3C;
+  --color-accent-lime: #8BC34A;
+  --color-bg-soft: #F5F5F5;
+
+  --color-brand-50: #F1F8E9;
+  --color-brand-100: #DCEDC8;
+  --color-brand-200: #C5E1A5;
+  --color-brand-400: #8BC34A;
+  --color-brand-600: #558B2F;
+  --color-brand-700: #388E3C;
+  --color-brand-800: #2E7D32;
+  --color-brand-900: #1B5E20;
+}
+
+/* ── Base Reset ───────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Inter", "Poppins", ui-sans-serif, system-ui, sans-serif;
+  background-color: #F5F5F5;
+  color: #1a1a1a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Poppins", "Inter", sans-serif;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+img,
+video {
+  max-width: 100%;
+  display: block;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid #388E3C;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F5F5F5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #8BC34A;
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #388E3C;
+}

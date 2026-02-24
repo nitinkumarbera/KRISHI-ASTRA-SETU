@@ -1,0 +1,140 @@
+{
+    "common": {
+        "loading": "Loading...",
+        "error": "Something went wrong",
+        "save": "Save Changes",
+        "cancel": "Cancel",
+        "logout": "Logout",
+        "login": "Login",
+        "register": "Register"
+    },
+    "nav": {
+        "marketplace": "Marketplace",
+        "about": "About Us",
+        "contact": "Contact",
+        "all_equipment": "All Equipment",
+        "search_placeholder": "Search tractors, harvesters, tools...",
+        "my_profile": "My Profile",
+        "admin": "Admin"
+    },
+    "hero": {
+        "badge": "India's #1 Farm Equipment Rental",
+        "title_part1": "Empowering Farmers",
+        "title_part2": "with Modern Tools",
+        "subtitle": "Rent high-quality machinery from trusted local lenders. Affordable, reliable, and just a tap away.",
+        "get_started": "Rent Now",
+        "list_equipment": "List Your Tool"
+    },
+    "home": {
+        "browse_category": "Browse by Category"
+    },
+    "lender_cta": {
+        "badge": "For Equipment Owners",
+        "title": "Have Equipment Sitting Idle?",
+        "subtitle": "Start Earning Today.",
+        "text": "Join {count} lenders earning up to {income}/month by renting out their tractors and tools.",
+        "btn_register": "Register as a Lender",
+        "btn_learn": "Learn More",
+        "stat_active": "Active Lenders",
+        "stat_income": "Avg. Monthly Income",
+        "stat_sat": "Lender Satisfaction"
+    },
+    "marketplace": {
+        "title": "Agri-Equipment Marketplace",
+        "search_placeholder": "Search tractors, harvesters, or village names...",
+        "grid_view": "Grid",
+        "map_view": "Map",
+        "filters_title": "Filters",
+        "reset_all": "Reset All",
+        "filter_category": "Category",
+        "filter_max_price": "Max Price",
+        "filter_distance": "Distance",
+        "distance_within": "Within {km} km",
+        "showing_results": "Showing {count} available tools in {location}",
+        "fetching_data": "Fetching equipment from your area...",
+        "error_loading": "Error Loading Marketplace",
+        "try_again": "Try Again",
+        "no_results": "No equipment found in this area yet",
+        "adjust_filters": "Try adjusting your filters or searching for a different village.",
+        "loading_maps": "Loading Google Maps...",
+        "hide_filters": "Hide Filters",
+        "show_filters": "Show Filters"
+    },
+    "categories": {
+        "tractor": "🚜 Tractor",
+        "harvester": "🌾 Harvester",
+        "rotavator": "🔄 Rotavator",
+        "seeddrill": "🌱 Seed Drill",
+        "jcb": "🏗️ JCB / Excavator",
+        "pump_diesel": "🚿 Diesel Pump",
+        "drone": "🚁 Drone Sprayer"
+    },
+    "profile": {
+        "loading": "Loading your high-tech profile...",
+        "member_since": "Member · Joined {date}",
+        "edit_profile": "Edit Profile",
+        "download_id": "Download ID Card",
+        "tabs": {
+            "profile": "My Profile",
+            "rentals": "My Rentals",
+            "equipment": "Lender Hub"
+        },
+        "kyc": {
+            "verified": "✅ KYC Verified",
+            "verified_desc": "You can now rent and list equipment on KAS.",
+            "pending": "⏳ Pending Admin Approval",
+            "pending_desc": "Your documents are under review. This usually takes 24–48 hours.",
+            "rejected": "❌ KYC Rejected",
+            "rejected_desc": "Please update your details and re-submit.",
+            "reason": "Rejection Reason: {reason}"
+        },
+        "identity_title": "Identity & Contact",
+        "identity": {
+            "name": "Full Name",
+            "gender": "Gender",
+            "aadhaar": "Aadhaar No.",
+            "mobile": "Mobile",
+            "email": "Email",
+            "role": "Role"
+        },
+        "address_title": "Residential Address",
+        "address": {
+            "village": "Village / Town",
+            "gp": "GP / Ward No.",
+            "block": "Block / Taluka",
+            "district": "District",
+            "pin": "PIN Code",
+            "state": "State"
+        },
+        "documents_title": "KYC Documents",
+        "documents": {
+            "photo": "Passport Photo",
+            "aadhaar_f": "Aadhaar Front",
+            "aadhaar_b": "Aadhaar Back",
+            "submitted": "Submitted",
+            "not_uploaded": "Not uploaded"
+        },
+        "rentals": {
+            "title": "Active & Past Rentals",
+            "no_bookings": "No bookings found.",
+            "go_marketplace": "Go to Marketplace",
+            "token": "Token"
+        },
+        "lender": {
+            "title": "Lender Hub",
+            "desc": "Manage your tools and track income",
+            "add_machine": "Add Machine",
+            "stat_total": "TOTAL MACHINES",
+            "stat_active": "ACTIVE RENTALS",
+            "rentals_title": "Rentals on your Equipment",
+            "no_lender_bookings": "No active bookings for your equipment yet.",
+            "ask_token": "Renter is arriving? Ask for token.",
+            "verify_start": "Verify & Start",
+            "started_success": "Rental started successfully.",
+            "listed_title": "Your Listed Equipment",
+            "no_listed": "You haven't listed any equipment yet.",
+            "status_available": "AVAILABLE",
+            "status_offline": "OFFLINE"
+        }
+    }
+}

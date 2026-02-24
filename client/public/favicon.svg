@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="58" fill="#F1F8E9" stroke="#8BC34A" stroke-width="2.5"/>
+
+  <!-- Wheat stalk left -->
+  <g fill="#8BC34A" opacity="0.85">
+    <ellipse cx="36" cy="34" rx="5" ry="9" transform="rotate(-20 36 34)"/>
+    <ellipse cx="40" cy="22" rx="5" ry="9" transform="rotate(-10 40 22)"/>
+    <ellipse cx="30" cy="46" rx="4" ry="8" transform="rotate(-25 30 46)"/>
+    <line x1="38" y1="58" x2="38" y2="20" stroke="#558B2F" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <!-- Tractor body -->
+  <rect x="44" y="60" width="36" height="22" rx="3" fill="#2E7D32"/>
+  <!-- Cab -->
+  <rect x="62" y="48" width="20" height="18" rx="3" fill="#388E3C"/>
+  <!-- Cab window -->
+  <rect x="65" y="51" width="13" height="9" rx="2" fill="#A5D6A7" opacity="0.8"/>
+
+  <!-- Exhaust pipe -->
+  <rect x="79" y="42" width="4" height="10" rx="2" fill="#1B5E20"/>
+
+  <!-- Big rear wheel -->
+  <circle cx="55" cy="83" r="15" fill="#1B5E20"/>
+  <circle cx="55" cy="83" r="9" fill="#2E7D32"/>
+  <circle cx="55" cy="83" r="3" fill="#8BC34A"/>
+
+  <!-- Small front wheel -->
+  <circle cx="81" cy="83" r="9" fill="#1B5E20"/>
+  <circle cx="81" cy="83" r="5" fill="#2E7D32"/>
+  <circle cx="81" cy="83" r="2" fill="#8BC34A"/>
+
+  <!-- Ground line -->
+  <line x1="22" y1="94" x2="98" y2="94" stroke="#8BC34A" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Wheat stalk right decorative -->
+  <g fill="#8BC34A" opacity="0.6">
+    <ellipse cx="88" cy="38" rx="4" ry="8" transform="rotate(15 88 38)"/>
+    <ellipse cx="93" cy="28" rx="4" ry="8" transform="rotate(8 93 28)"/>
+    <line x1="90" y1="56" x2="90" y2="22" stroke="#558B2F" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</svg>
