@@ -35,6 +35,28 @@ const BookingSchema = new mongoose.Schema({
     paymentStatus: { type: String, enum: ['Pending', 'Paid', 'Refunded'], default: 'Pending' },
     cancellationReason: { type: String },
 
+    // ── Rental Proof Photos (uploaded by renter during In Progress) ───
+    rentalPhotos: [{
+        url: { type: String, required: true },
+        lat: { type: Number },
+        lng: { type: Number },
+        address: { type: String },
+        takenAt: { type: Date, default: Date.now }
+    }],
+
+    // ── Return Confirmation (two-sided closure) ───────────────────────
+    returnConfirmedByRenter: { type: Boolean, default: false },
+    returnConfirmedAt: { type: Date },
+
+    // ── Damage Report (filed by lender before completing) ────────────
+    damageReport: {
+        filed: { type: Boolean, default: false },
+        description: { type: String },
+        severity: { type: String, enum: ['Minor', 'Moderate', 'Severe'] },
+        photos: [{ url: String, uploadedAt: { type: Date, default: Date.now } }],
+        filedAt: { type: Date }
+    },
+
     createdAt: { type: Date, default: Date.now }
 });
 

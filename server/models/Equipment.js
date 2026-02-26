@@ -5,11 +5,8 @@ const EquipmentSchema = new mongoose.Schema({
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
     // ── Equipment Details ───────────────────────────────────
-    name: { type: String, required: true, trim: true },
-    category: {
-        type: String, required: true,
-        enum: ['Tractor', 'Harvester', 'Plough', 'Seeding Machine', 'Irrigation', 'Sprayer', 'Thresher', 'Other']
-    },
+    name: { type: String, trim: true },
+    category: { type: String, required: true, trim: true },  // flexible — frontend uses lowercase
     brand: { type: String, trim: true },
     modelNo: { type: String, trim: true },
     manufactureYear: { type: Number },
@@ -28,10 +25,19 @@ const EquipmentSchema = new mongoose.Schema({
 
     // ── Location ────────────────────────────────────────────
     location: {
+        houseNo: String,
+        landmark: String,
         village: String,
+        postOffice: String,
+        block: String,
+        policeStation: String,
+        gpWard: String,
         district: { type: String, required: true },
         state: String,
         pinCode: String,
+        lat: Number,
+        lng: Number,
+        label: String,
     },
 
     // ── Images (Cloudinary URLs) ─────────────────────────────

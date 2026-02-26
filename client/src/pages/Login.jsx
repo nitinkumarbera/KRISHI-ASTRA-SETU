@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { Eye, EyeOff, Leaf, Mail, Lock, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,7 +10,13 @@ function isValidEmail(email) {
 
 export default function Login() {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, user, token } = useAuth();
+
+    // ── Already logged in? Redirect to correct dashboard ──────
+    if (token && user) {
+        const dest = user.role === 'Admin' ? '/admin-dashboard' : '/marketplace';
+        return <Navigate to={dest} replace />;
+    }
 
     const [form, setForm] = useState({ email: '', password: '' });
     const [showPass, setShowPass] = useState(false);
@@ -201,12 +207,12 @@ export default function Login() {
 
                         {/* Forgot password */}
                         <div style={{ textAlign: 'right', marginTop: '6px', marginBottom: '24px' }}>
-                            <a href="#" style={{ fontSize: '13px', fontWeight: 600, color: '#8BC34A', textDecoration: 'none' }}
+                            <Link to="/forgot-password" style={{ fontSize: '13px', fontWeight: 600, color: '#8BC34A', textDecoration: 'none' }}
                                 onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
                                 onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
                             >
                                 Forgot Password?
-                            </a>
+                            </Link>
                         </div>
 
                         {/* Submit */}

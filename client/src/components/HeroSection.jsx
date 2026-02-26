@@ -4,12 +4,12 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 
 const CATEGORIES = (t) => [
-    { name: t('nav.tractor') || 'Tractors', icon: Tractor, color: "#2E7D32" },
-    { name: t('nav.harvester') || 'Harvesters', icon: Wind, color: "#388E3C" },
-    { name: t('nav.rotavator') || 'Rotavators', icon: Zap, color: "#558B2F" },
-    { name: t('nav.plough') || 'Ploughs', icon: Shovel, color: "#33691E" },
-    { name: t('nav.sprayer') || 'Sprayers', icon: Droplets, color: "#1B5E20" },
-    { name: t('nav.seeder') || 'Seeders', icon: Leaf, color: "#7CB342" },
+    { name: t('categories.tractor'), icon: Tractor, color: "#2E7D32" },
+    { name: t('categories.harvester'), icon: Wind, color: "#388E3C" },
+    { name: t('categories.rotavator'), icon: Zap, color: "#558B2F" },
+    { name: t('categories.seeddrill'), icon: Shovel, color: "#33691E" },
+    { name: t('categories.pump_diesel'), icon: Droplets, color: "#1B5E20" },
+    { name: t('categories.drone'), icon: Leaf, color: "#7CB342" },
 ];
 
 function CategoryPill({ name, icon: Icon, color }) {

@@ -13,6 +13,7 @@
         "about": "About Us",
         "contact": "Contact",
         "all_equipment": "All Equipment",
+        "list_tool": "+ List Your Tool",
         "search_placeholder": "Search tractors, harvesters, tools...",
         "my_profile": "My Profile",
         "admin": "Admin"
@@ -118,7 +119,16 @@
             "title": "Active & Past Rentals",
             "no_bookings": "No bookings found.",
             "go_marketplace": "Go to Marketplace",
-            "token": "Token"
+            "token": "Token",
+            "rate_machine": "Rate Machine",
+            "review_modal": {
+                "title": "Leave a Review",
+                "desc": "How was your experience renting {machine}?",
+                "placeholder": "Share your experience — condition, service, punctuality...",
+                "cancel": "Cancel",
+                "submit": "Submit Review",
+                "submitting": "Submitting…"
+            }
         },
         "lender": {
             "title": "Lender Hub",

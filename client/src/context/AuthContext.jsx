@@ -31,9 +31,9 @@ export function AuthProvider({ children }) {
                 })
                     .then(r => r.ok ? r.json() : null)
                     .then(data => {
-                        if (data) {
-                            setUser(data);
-                            localStorage.setItem('kas_user', JSON.stringify(data));
+                        if (data?.data) {
+                            setUser(data.data);
+                            localStorage.setItem('kas_user', JSON.stringify(data.data));
                         }
                     })
                     .catch(() => {/* offline — keep cached user */ });
@@ -71,8 +71,9 @@ export function AuthProvider({ children }) {
             });
             if (res.ok) {
                 const data = await res.json();
-                setUser(data);
-                localStorage.setItem('kas_user', JSON.stringify(data));
+                const userData = data?.data ?? data;   // handle both {success,data} and raw user
+                setUser(userData);
+                localStorage.setItem('kas_user', JSON.stringify(userData));
             }
         } catch { /* ignore */ }
     };

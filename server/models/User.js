@@ -18,15 +18,15 @@ const UserSchema = new mongoose.Schema({
     // ── Section 2: Full Address ─────────────────────────────
     address: {
         houseNo: String,
-        village: { type: String, required: true },
+        village: { type: String },
         postOffice: String,
         gpWard: String,
         block: String,
         policeStation: String,
         landmark: String,
-        district: { type: String, required: true },
+        district: { type: String },
         pinCode: { type: String, match: [/^\d{6}$/, 'PIN must be 6 digits'] },
-        state: { type: String, required: true }
+        state: { type: String }
     },
 
     // ── Section 3: Bank & Payments ──────────────────────────
@@ -34,7 +34,7 @@ const UserSchema = new mongoose.Schema({
         bankName: String,
         branchName: String,
         accountNo: String,
-        ifscCode: { type: String, match: [/^[A-Z]{4}0[A-Z0-9]{6}$/, 'Invalid IFSC code'] },
+        ifscCode: { type: String },
         upiId: String,
         qrCodeUrl: String   // Cloudinary URL
     },

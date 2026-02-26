@@ -2,7 +2,8 @@
    Multi-column professional footer
 ─────────────────────────────────────────────────────────── */
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const POLICY_LINKS = ["Privacy Policy", "Terms of Service", "Refund Policy", "Cookie Policy"];
 const AIMS = [
@@ -31,6 +32,16 @@ function ColHeading({ children }) {
 export default function Footer() {
     const [feedback, setFeedback] = useState("");
     const [fbSent, setFbSent] = useState(false);
+    const { isAuthenticated } = useAuth();
+    const navigate = useNavigate();
+
+    function authNav(path) {
+        if (isAuthenticated) {
+            navigate(path);
+        } else {
+            navigate('/login', { state: { from: path } });
+        }
+    }
 
     function handleFeedback(e) {
         e.preventDefault();
@@ -157,8 +168,8 @@ export default function Footer() {
                         <div style={{ marginTop: "20px" }}>
                             <ColHeading>Quick Links</ColHeading>
                             <FootingLink to="/about">About Us</FootingLink>
-                            <FootingLink to="/#explore">Find Equipment</FootingLink>
-                            <FootingLink to="/#explore">List Equipment</FootingLink>
+                            <button onClick={() => authNav('/marketplace')} style={{ display: 'block', fontSize: '13px', color: 'rgba(255,255,255,0.55)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '9px', padding: 0, textAlign: 'left', transition: 'color 0.18s' }} onMouseEnter={e => e.currentTarget.style.color = '#8BC34A'} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.55)'}>🔍 Find Equipment</button>
+                            <button onClick={() => authNav('/add-equipment')} style={{ display: 'block', fontSize: '13px', color: 'rgba(255,255,255,0.55)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '9px', padding: 0, textAlign: 'left', transition: 'color 0.18s' }} onMouseEnter={e => e.currentTarget.style.color = '#8BC34A'} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.55)'}>🌾 List Equipment</button>
                             <FootingLink to="/contact">Contact &amp; Support</FootingLink>
                             <FootingLink to="/">Home</FootingLink>
                         </div>

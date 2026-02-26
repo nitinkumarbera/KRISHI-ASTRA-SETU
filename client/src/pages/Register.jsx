@@ -6,15 +6,7 @@ import {
     FileText, Camera, ChevronDown, AlertCircle
 } from 'lucide-react';
 
-// ── Indian States ──────────────────────────────────────────
-const STATES = [
-    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana',
-    'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
-    'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana',
-    'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
-    'Andaman & Nicobar Islands', 'Chandigarh', 'Dadra & Nagar Haveli and Daman & Diu', 'Delhi', 'Jammu & Kashmir',
-    'Ladakh', 'Lakshadweep', 'Puducherry'
-];
+import { ALL_STATES, getDistricts, getTalukas } from '../utils/locationData';
 
 const BANKS = [
     'State Bank of India', 'Punjab National Bank', 'Bank of Baroda', 'Canara Bank', 'Union Bank of India',
@@ -70,7 +62,7 @@ export default function Register() {
         mobile: '', email: '', aadhaarNo: '', password: '', confirmPassword: '',
         houseNo: '', village: '', postOffice: '', gpWard: '',
         block: '', policeStation: '', landmark: '', district: '', pinCode: '', state: 'Maharashtra',
-        bankName: '', branchName: '', accountNo: '', ifscCode: '', upiId: '',
+        bankName: '', branchName: '', accountNo: '', ifscCode: '', upiId: '', customBankName: '',
     });
     const [showPass, setShowPass] = useState(false);
     const [files, setFiles] = useState({ passportPhoto: null, aadhaarImage: null, voterIdImage: null, passbookImage: null, qrCodeImage: null });
@@ -118,8 +110,9 @@ export default function Register() {
         }
         if (s === 2) {
             if (!form.bankName) e.bankName = 'Required';
+            if (form.bankName === 'Other' && !form.customBankName.trim()) e.customBankName = 'Please specify your bank name';
             if (!form.accountNo.trim()) e.accountNo = 'Required';
-            if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(form.ifscCode.toUpperCase())) e.ifscCode = 'Invalid IFSC (e.g. SBIN0001234)';
+            if (!form.ifscCode.trim()) e.ifscCode = 'IFSC Code is required';
         }
         if (s === 3) {
             if (!files.passportPhoto) e.passportPhoto = 'Upload required';
@@ -321,7 +314,6 @@ export default function Register() {
                             </>
                         )}
 
-                        {/* ── STEP 1: Address ──────────────────── */}
                         {step === 1 && (
                             <>
                                 <SectionHead icon={MapPin} title="Section 2: Full Address" subtitle="Your permanent residential address for KYC" />
@@ -342,35 +334,61 @@ export default function Register() {
                                         <input value={form.gpWard} onChange={e => set('gpWard', e.target.value)} style={inp('gpWard')} placeholder="e.g. Ward 7" onFocus={focusIn} onBlur={e => blurIn(e, 'gpWard')} />
                                     </FG>
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                                    <FG label="Block / Taluka">
-                                        <input value={form.block} onChange={e => set('block', e.target.value)} style={inp('block')} placeholder="e.g. Niphad" onFocus={focusIn} onBlur={e => blurIn(e, 'block')} />
-                                    </FG>
-                                    <FG label="Police Station">
-                                        <input value={form.policeStation} onChange={e => set('policeStation', e.target.value)} style={inp('policeStation')} placeholder="e.g. Niphad PS" onFocus={focusIn} onBlur={e => blurIn(e, 'policeStation')} />
-                                    </FG>
+
+                                {/* ── Cascading Location ────────────────────── */}
+                                <div style={{ background: '#F0FDF4', border: '1.5px solid #BBF7D0', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
+                                    <p style={{ fontSize: '12px', fontWeight: 700, color: '#15803D', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        📍 Select your location step-by-step
+                                    </p>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                                        <FG label="State" required>
+                                            <select value={form.state}
+                                                onChange={e => { set('state', e.target.value); set('district', ''); set('block', ''); }}
+                                                style={{ ...inp('state'), background: '#fff' }}
+                                                onFocus={focusIn} onBlur={e => blurIn(e, 'state')}>
+                                                <option value="">-- Select State --</option>
+                                                {ALL_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                                            </select>
+                                            <Err msg={errors.state} />
+                                        </FG>
+                                        <FG label="District" required>
+                                            <select value={form.district}
+                                                onChange={e => { set('district', e.target.value); set('block', ''); }}
+                                                disabled={!getDistricts(form.state).length}
+                                                style={{ ...inp('district'), background: '#fff', opacity: getDistricts(form.state).length ? 1 : 0.6 }}
+                                                onFocus={focusIn} onBlur={e => blurIn(e, 'district')}>
+                                                <option value="">-- Select District --</option>
+                                                {getDistricts(form.state).map(d => <option key={d} value={d}>{d}</option>)}
+                                            </select>
+                                            <Err msg={errors.district} />
+                                        </FG>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <FG label="Taluka / Block">
+                                            <select value={form.block}
+                                                onChange={e => set('block', e.target.value)}
+                                                disabled={!getTalukas(form.state, form.district).length}
+                                                style={{ ...inp('block'), background: '#fff', opacity: getTalukas(form.state, form.district).length ? 1 : 0.6 }}
+                                                onFocus={focusIn} onBlur={e => blurIn(e, 'block')}>
+                                                <option value="">-- Select Taluka --</option>
+                                                {getTalukas(form.state, form.district).map(ta => <option key={ta} value={ta}>{ta}</option>)}
+                                            </select>
+                                        </FG>
+                                        <FG label="PIN Code" required>
+                                            <input value={form.pinCode} onChange={e => set('pinCode', e.target.value.replace(/\D/g, '').slice(0, 6))} style={inp('pinCode')} placeholder="6-digit" onFocus={focusIn} onBlur={e => blurIn(e, 'pinCode')} />
+                                            <Err msg={errors.pinCode} />
+                                        </FG>
+                                    </div>
                                 </div>
-                                <div style={{ marginBottom: '16px' }}>
+
+                                <FG label="Police Station">
+                                    <input value={form.policeStation} onChange={e => set('policeStation', e.target.value)} style={inp('policeStation')} placeholder="e.g. Niphad PS" onFocus={focusIn} onBlur={e => blurIn(e, 'policeStation')} />
+                                </FG>
+                                <div style={{ marginTop: '16px' }}>
                                     <FG label="Landmark Location">
                                         <input value={form.landmark} onChange={e => set('landmark', e.target.value)} style={inp('landmark')} placeholder="e.g. Near Gram Panchayat Office" onFocus={focusIn} onBlur={e => blurIn(e, 'landmark')} />
                                     </FG>
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                                    <FG label="District" required>
-                                        <input value={form.district} onChange={e => set('district', e.target.value)} style={inp('district')} placeholder="e.g. Nashik" onFocus={focusIn} onBlur={e => blurIn(e, 'district')} />
-                                        <Err msg={errors.district} />
-                                    </FG>
-                                    <FG label="PIN Code" required>
-                                        <input value={form.pinCode} onChange={e => set('pinCode', e.target.value.replace(/\D/g, '').slice(0, 6))} style={inp('pinCode')} placeholder="6-digit" onFocus={focusIn} onBlur={e => blurIn(e, 'pinCode')} />
-                                        <Err msg={errors.pinCode} />
-                                    </FG>
-                                </div>
-                                <FG label="State" required>
-                                    <select value={form.state} onChange={e => set('state', e.target.value)} style={{ ...inp('state'), background: '#F9FAFB' }} onFocus={focusIn} onBlur={e => blurIn(e, 'state')}>
-                                        {STATES.map(s => <option key={s}>{s}</option>)}
-                                    </select>
-                                    <Err msg={errors.state} />
-                                </FG>
                             </>
                         )}
 
@@ -386,6 +404,19 @@ export default function Register() {
                                         </select>
                                         <Err msg={errors.bankName} />
                                     </FG>
+                                    {form.bankName === 'Other' && (
+                                        <FG label="Specify Bank Name" required>
+                                            <input
+                                                value={form.customBankName}
+                                                onChange={e => set('customBankName', e.target.value)}
+                                                style={inp('customBankName')}
+                                                placeholder="e.g. Saraswat Co-operative Bank"
+                                                onFocus={focusIn}
+                                                onBlur={e => blurIn(e, 'customBankName')}
+                                            />
+                                            <Err msg={errors.customBankName} />
+                                        </FG>
+                                    )}
                                     <FG label="Branch Name">
                                         <input value={form.branchName} onChange={e => set('branchName', e.target.value)} style={inp('branchName')} placeholder="e.g. Nashik Main Branch" onFocus={focusIn} onBlur={e => blurIn(e, 'branchName')} />
                                     </FG>

@@ -29,28 +29,74 @@ exports.addEquipment = async (req, res) => {
             });
         }
 
+        // ── Map frontend field names → controller variables ──
         const {
-            name, category, brand, modelNo, manufactureYear, description,
-            horsePower, fuelType, condition,
-            priceHr, priceDay,
-            village, district, state, pinCode
+            // Basic info
+            category, brand,
+            model,           // frontend sends 'model', schema stores as modelNo
+            year,            // frontend sends 'year', schema stores as manufactureYear
+            otherName,       // only set when category === 'other'
+            description,
+            horsepower,      // frontend key
+            condition,
+            fuelType,
+            // Pricing
+            priceHr, rentHour,   // frontend sends rentHour
+            priceDay, rentDay,    // frontend sends rentDay
+            priceSeason, rentSeason,
+            // Address
+            houseNo, landmark, village, postOffice, block,
+            policeStation, gpWard, district, state, pinCode,
+            // Geo
+            lat, lng, locLabel,
         } = req.body;
 
-        // Upload equipment images (up to 5)
-        const files = req.files || [];
+        // Normalise category: frontend sends lowercase ('tractor'), model accepts any string now
+        const catRaw = (otherName?.trim() ? otherName.trim() : category) || 'Other';
+
+        // Auto-generate name from brand + model (since frontend has no separate 'name' field)
+        const name = [brand, model || catRaw].filter(Boolean).join(' ') || catRaw;
+
+        // Resolve pricing (support both naming conventions)
+        const finalPriceHr = Number(priceHr || rentHour || 0);
+        const finalPriceDay = Number(priceDay || rentDay || 0);
+
+        // Upload equipment images (up to 5); req.files is an array from upload.array()
+        const files = (req.files || []);
         const imageUrls = await Promise.all(files.map(f => uploadBuf(f)));
         const validUrls = imageUrls.filter(Boolean);
 
         const equipment = new Equipment({
             owner: req.user.id,
-            name, category, brand, modelNo,
-            manufactureYear: manufactureYear ? Number(manufactureYear) : undefined,
-            description,
-            specs: { horsePower, fuelType, condition },
-            priceHr: Number(priceHr),
-            priceDay: Number(priceDay),
-            location: { village, district, state, pinCode },
-            images: validUrls
+            name,
+            category: catRaw,
+            brand: brand || '',
+            modelNo: model || '',
+            manufactureYear: year ? Number(year) : undefined,
+            description: description || '',
+            specs: {
+                horsePower: horsepower || '',
+                fuelType: fuelType || 'Diesel',
+                condition: condition || 'Good',
+            },
+            priceHr: finalPriceHr,
+            priceDay: finalPriceDay,
+            location: {
+                houseNo: houseNo || '',
+                landmark: landmark || '',
+                village: village || '',
+                postOffice: postOffice || '',
+                block: block || '',
+                policeStation: policeStation || '',
+                gpWard: gpWard || '',
+                district: district || '',
+                state: state || 'Maharashtra',
+                pinCode: pinCode || '',
+                lat: lat ? Number(lat) : undefined,
+                lng: lng ? Number(lng) : undefined,
+                label: locLabel || '',
+            },
+            images: validUrls,
         });
 
         await equipment.save();
@@ -59,10 +105,11 @@ exports.addEquipment = async (req, res) => {
         res.status(201).json({ success: true, message: 'Equipment listed successfully!', data: populated });
 
     } catch (err) {
-        console.error('[addEquipment]', err.message);
-        res.status(500).json({ success: false, message: 'Error listing equipment.' });
+        console.error('[addEquipment] FULL ERROR:', err);
+        res.status(500).json({ success: false, message: err.message || 'Error listing equipment.' });
     }
 };
+
 
 // ══════════════════════════════════════════════════════════
 // @route   GET /api/equipment/all
@@ -89,7 +136,7 @@ exports.getAllEquipment = async (req, res) => {
 exports.getEquipmentById = async (req, res) => {
     try {
         const item = await Equipment.findById(req.params.id)
-            .populate('owner', 'name mobile address kycStatus');
+            .populate('owner', 'name mobile email address finance kycStatus');
         if (!item) return res.status(404).json({ success: false, message: `Equipment not found.` });
         res.json({ success: true, data: item });
     } catch (err) {
@@ -106,11 +153,15 @@ exports.getEquipmentById = async (req, res) => {
 // ══════════════════════════════════════════════════════════
 exports.searchEquipment = async (req, res) => {
     try {
-        const { category, minPrice, maxPrice, district, search } = req.query;
-        const query = { isAvailable: true };
+        const { category, minPrice, maxPrice, district, state, taluka, village, search } = req.query;
+        // Don't filter by isAvailable:true — equipment saved without this field set would be hidden
+        const query = { isAvailable: { $ne: false } };
 
         if (category && category !== 'All') query.category = category;
+        if (state) query['location.state'] = new RegExp(state, 'i');
         if (district) query['location.district'] = new RegExp(district, 'i');
+        if (taluka) query['location.block'] = new RegExp(taluka, 'i');
+        if (village) query['location.village'] = new RegExp(village, 'i');
         if (search) query['$or'] = [
             { name: { $regex: search, $options: 'i' } },
             { brand: { $regex: search, $options: 'i' } },

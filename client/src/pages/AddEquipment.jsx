@@ -5,6 +5,8 @@ import {
     X, Leaf, IndianRupee, Info, AlertCircle, RefreshCw,
     Navigation, Package
 } from 'lucide-react';
+import { ALL_STATES, getDistricts, getTalukas } from '../utils/locationData';
+import { kasAlert } from '../components/KasDialog';
 
 // ── Google Maps API Key (from client/.env) ─────────────────
 const GMAP_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -449,35 +451,51 @@ function Step3({ form, setForm, errors }) {
     const [mapLabel, setMapLabel] = useState('');
 
     async function autoDetect() {
-        if (!window.google?.maps) { alert('Google Maps service is loading, please wait...'); return; }
         setDetecting(true);
         try {
-            const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true }));
+            const pos = await new Promise((res, rej) =>
+                navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000 })
+            );
             const { latitude: lat, longitude: lng } = pos.coords;
+            setMapLat(lat); setMapLng(lng);
 
-            const geocoder = new window.google.maps.Geocoder();
-            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-                if (status === 'OK' && results[0]) {
-                    const comps = results[0].address_components;
-                    const get = t => comps.find(c => c.types.includes(t))?.long_name || '';
-                    setMapLat(lat); setMapLng(lng);
-                    setMapLabel(results[0].formatted_address);
-                    setForm(f => ({
-                        ...f,
-                        village: get('locality') || get('sublocality') || get('administrative_area_level_3'),
-                        district: get('administrative_area_level_2'),
-                        state: get('administrative_area_level_1') || 'Maharashtra',
-                        pinCode: get('postal_code'),
-                        postOffice: get('sublocality_level_1') || get('locality'),
-                        _lat: lat, _lng: lng,
-                    }));
-                } else {
-                    alert('Google could not find address for this point. Please fill manually.');
-                }
-                setDetecting(false);
-            });
+            // Use OpenStreetMap Nominatim — free, no API key, excellent Indian rural coverage
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+                { headers: { 'Accept-Language': 'en', 'User-Agent': 'KrishiAstraSetu/1.0' } }
+            );
+            if (!res.ok) throw new Error('Nominatim request failed');
+            const data = await res.json();
+            const a = data.address || {};
+
+            // Map Nominatim fields → our form fields (rural India)
+            const village = a.village || a.hamlet || a.suburb || a.town || a.city || '';
+            const postOffice = a.postcode ? (a.village || a.town || a.suburb || '') : '';
+            const block = a.county || a.state_district || '';
+            const district = a.state_district || a.county || '';
+            const state = a.state || 'Maharashtra';
+            const pinCode = a.postcode || '';
+            const fullAddr = data.display_name || '';
+
+            setMapLabel(fullAddr);
+            setForm(f => ({
+                ...f,
+                village,
+                postOffice,
+                block,
+                district,
+                state,
+                pinCode,
+                _lat: lat,
+                _lng: lng,
+            }));
         } catch (e) {
-            alert('Location permission denied or unavailable.');
+            if (e.code === 1) {
+                await kasAlert('Location permission denied. Please allow location access in your browser.');
+            } else {
+                await kasAlert('Could not detect location. Please fill in manually.');
+            }
+        } finally {
             setDetecting(false);
         }
     }
@@ -542,39 +560,55 @@ function Step3({ form, setForm, errors }) {
                         placeholder="e.g. Ward 4 / वार्ड 4"
                         style={iStyle()} onFocus={fg} onBlur={e => bg(e, false)} />
                 </Fld>
-                <Fld label="Block / Taluka" required error={errors.block}>
-                    <input value={form.block} onChange={e => up('block', e.target.value)}
-                        placeholder="e.g. Niphad / निफाड"
-                        style={iStyle(!!errors.block)} onFocus={fg} onBlur={e => bg(e, !!errors.block)} />
-                </Fld>
-            </div>
-
-            <div style={row2}>
                 <Fld label="Police Station">
                     <input value={form.policeStation} onChange={e => up('policeStation', e.target.value)}
                         placeholder="e.g. Ozar PS"
                         style={iStyle()} onFocus={fg} onBlur={e => bg(e, false)} />
                 </Fld>
-                <Fld label="District / जिला" required error={errors.district}>
-                    <input value={form.district} onChange={e => up('district', e.target.value)}
-                        placeholder="e.g. Nashik / नाशिक"
-                        style={iStyle(!!errors.district)} onFocus={fg} onBlur={e => bg(e, !!errors.district)} />
-                </Fld>
             </div>
 
-            <div style={row2}>
-                <Fld label="State / राज्य">
-                    <select value={form.state} onChange={e => up('state', e.target.value)}
-                        style={iStyle()} onFocus={fg} onBlur={e => bg(e, false)}>
-                        <option value="">-- Select State --</option>
-                        {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                </Fld>
-                <Fld label="PIN Code" required error={errors.pinCode}>
-                    <input type="text" maxLength={6} value={form.pinCode} onChange={e => up('pinCode', e.target.value.replace(/\D/, ''))}
-                        placeholder="e.g. 422207"
-                        style={iStyle(!!errors.pinCode)} onFocus={fg} onBlur={e => bg(e, !!errors.pinCode)} />
-                </Fld>
+            {/* ── Cascading State → District → Taluka ─────────── */}
+            <div style={{ background: '#F0FDF4', border: '1.5px solid #BBF7D0', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: '#15803D', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    📍 Select location step-by-step
+                </p>
+                <div style={row2}>
+                    <Fld label="State / राज्य">
+                        <select value={form.state}
+                            onChange={e => { up('state', e.target.value); up('district', ''); up('block', ''); }}
+                            style={iStyle()} onFocus={fg} onBlur={e => bg(e, false)}>
+                            <option value="">-- Select State --</option>
+                            {ALL_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </Fld>
+                    <Fld label="District / जिला" required error={errors.district}>
+                        <select value={form.district}
+                            onChange={e => { up('district', e.target.value); up('block', ''); }}
+                            disabled={!getDistricts(form.state).length}
+                            style={{ ...iStyle(!!errors.district), opacity: getDistricts(form.state).length ? 1 : 0.6 }}
+                            onFocus={fg} onBlur={e => bg(e, !!errors.district)}>
+                            <option value="">-- Select District --</option>
+                            {getDistricts(form.state).map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                    </Fld>
+                </div>
+                <div style={{ ...row2, marginTop: '12px' }}>
+                    <Fld label="Block / Taluka / तालुका" required error={errors.block}>
+                        <select value={form.block}
+                            onChange={e => up('block', e.target.value)}
+                            disabled={!getTalukas(form.state, form.district).length}
+                            style={{ ...iStyle(!!errors.block), opacity: getTalukas(form.state, form.district).length ? 1 : 0.6 }}
+                            onFocus={fg} onBlur={e => bg(e, !!errors.block)}>
+                            <option value="">-- Select Taluka --</option>
+                            {getTalukas(form.state, form.district).map(ta => <option key={ta} value={ta}>{ta}</option>)}
+                        </select>
+                    </Fld>
+                    <Fld label="PIN Code" required error={errors.pinCode}>
+                        <input type="text" maxLength={6} value={form.pinCode} onChange={e => up('pinCode', e.target.value.replace(/\D/, ''))}
+                            placeholder="e.g. 422207"
+                            style={iStyle(!!errors.pinCode)} onFocus={fg} onBlur={e => bg(e, !!errors.pinCode)} />
+                    </Fld>
+                </div>
             </div>
 
             {/* Google Maps picker */}
@@ -612,33 +646,27 @@ function GeoTagCamera({ onCapture, fallbackAddress }) {
             const { latitude: lat, longitude: lng, accuracy } = pos.coords;
             setGpsInfo({ lat, lng, accuracy });
 
-            // 2. Reverse-geocode via SDK (Bypasses CORS)
-            if (window.google?.maps) {
-                const geoc = new window.google.maps.Geocoder();
-                geoc.geocode({ location: { lat, lng } }, (results, status) => {
-                    if (status === 'OK' && results[0]) {
-                        const full = results[0].formatted_address;
-                        const parts = full.split(',');
-                        const line1 = parts.slice(0, 2).join(',').trim();
-                        const line2 = parts.slice(2).join(',').trim();
-                        setAddrText(full);
-                        setGpsInfo(g => ({ ...g, line1: line1 || 'Location Found', line2 }));
-                    } else {
-                        // Use the address from Step 3 if API fails
-                        const full = fallbackAddress || `Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`;
-                        const parts = full.split(',');
-                        setAddrText(full);
-                        setGpsInfo(g => ({
-                            ...g,
-                            line1: parts[0]?.trim() || 'Address Fallback',
-                            line2: parts.slice(1).join(',').trim() || 'Billing/API restriction active'
-                        }));
-                    }
-                });
-            } else {
-                const full = fallbackAddress || `GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            // 2. Reverse-geocode via OpenStreetMap Nominatim (no API key, great rural India coverage)
+            try {
+                const geoRes = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+                    { headers: { 'Accept-Language': 'en', 'User-Agent': 'KrishiAstraSetu/1.0' } }
+                );
+                if (geoRes.ok) {
+                    const geoData = await geoRes.json();
+                    const full = geoData.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                    const a = geoData.address || {};
+                    const line1 = [a.village || a.hamlet || a.suburb || a.town || '', a.county || a.state_district || ''].filter(Boolean).join(', ');
+                    const line2 = [a.state || '', a.postcode || ''].filter(Boolean).join(' ');
+                    setAddrText(full);
+                    setGpsInfo(g => ({ ...g, line1: line1 || 'Location Found', line2 }));
+                } else {
+                    throw new Error('Nominatim non-OK response');
+                }
+            } catch {
+                const full = fallbackAddress || `Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`;
                 setAddrText(full);
-                setGpsInfo(g => ({ ...g, line1: full.split(',')[0], line2: 'SDK not loaded' }));
+                setGpsInfo(g => ({ ...g, line1: full.split(',')[0]?.trim() || 'Location Found', line2: 'Address lookup failed' }));
             }
 
             // 3. Start video stream (back camera on mobile)
@@ -658,6 +686,7 @@ function GeoTagCamera({ onCapture, fallbackAddress }) {
         setLoading(false);
     }
 
+
     function stopCamera() {
         if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
         setStreaming(false);
@@ -671,8 +700,11 @@ function GeoTagCamera({ onCapture, fallbackAddress }) {
         try {
             const canvas = canvasRef.current;
             const video = videoRef.current;
-            const W = video.videoWidth || 1280;
-            const H = video.videoHeight || 720;
+            const MAX_W = 1280;  // cap to avoid >5 MB uploads
+            const rawW = video.videoWidth || 1280;
+            const rawH = video.videoHeight || 720;
+            const W = rawW > MAX_W ? MAX_W : rawW;
+            const H = rawW > MAX_W ? Math.round(rawH * (MAX_W / rawW)) : rawH;
             canvas.width = W;
             canvas.height = H;
             const ctx = canvas.getContext('2d');
@@ -774,12 +806,12 @@ function GeoTagCamera({ onCapture, fallbackAddress }) {
             canvas.toBlob(blob => {
                 if (!blob) { setCapturing(false); throw new Error("Canvas blob creation failed"); }
                 const file = new File([blob], `geo_${Date.now()}.jpg`, { type: 'image/jpeg' });
-                const url = canvas.toDataURL('image/jpeg', 0.92);
+                const url = canvas.toDataURL('image/jpeg', 0.82);
                 const newImg = { file, url, lat: gpsInfo.lat, lng: gpsInfo.lng, address: addrText, timestamp: Date.now() };
                 setCaptured(c => [...c, newImg]);
                 onCapture(newImg);
                 setCapturing(false);
-            }, 'image/jpeg', 0.92);
+            }, 'image/jpeg', 0.82);  // 0.82 quality ~1-2 MB max at 1280px
         } catch (e) {
             console.error("Capture Error:", e);
             setError(`Capture failed: ${e.message}`);
@@ -1020,10 +1052,11 @@ export default function AddEquipment() {
             fd.append('lng', form._lng || 73.8);
             fd.append('locLabel', form._locLabel || '');
 
-            // ── Image Blobs (geo-tagged) ──────────────────────────
+            // ── Image Blobs (geo-tagged) ── field name MUST match upload.array('equipmentImages')
             form.images.forEach((img, i) => {
-                if (img.file) fd.append(`equipment_image_${i}`, img.file, `photo_${i}.jpg`);
+                if (img.file) fd.append('equipmentImages', img.file, `photo_${i}.jpg`);
             });
+
 
             const res = await fetch('http://localhost:5000/api/equipment/add', {
                 method: 'POST',

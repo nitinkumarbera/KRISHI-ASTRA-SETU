@@ -2,12 +2,14 @@ import { useState, useMemo, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
     Calendar, Clock, MapPin, ShieldCheck, Star, ArrowLeft,
-    CheckCircle2, IndianRupee, Tractor, Info, Copy, ChevronRight, Zap, Download,
-    RefreshCw, AlertCircle
+    CheckCircle2, IndianRupee, Tractor, Info, Copy, ChevronRight, ChevronLeft, Zap, Download,
+    RefreshCw, AlertCircle, ZoomIn, X
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import _autoTableMod from 'jspdf-autotable';
 import { useAuth } from '../context/AuthContext';
+import { kasAlert } from '../components/KasDialog';
+
 
 // jspdf-autotable v5 ESM/CJS interop
 const autoTable = typeof _autoTableMod === 'function' ? _autoTableMod : (_autoTableMod?.default ?? _autoTableMod);
@@ -45,9 +47,50 @@ export default function Booking() {
     const [purpose, setPurpose] = useState('');
     const [agreed, setAgreed] = useState(false);
     const [booked, setBooked] = useState(false);
+    const [bookingId, setBookingId] = useState(null);
     const [token, setToken] = useState('');
     const [copied, setCopied] = useState(false);
     const [errors, setErrors] = useState({});
+    // Cancel booking states
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+    const [cancelling, setCancelling] = useState(false);
+    const [cancelled, setCancelled] = useState(false);
+
+    // Lightbox for booking-page equipment photos
+    const [lightboxBIdx, setLightboxBIdx] = useState(null);
+    const [carouselBIdx, setCarouselBIdx] = useState(0);
+    const [bSliding, setBSliding] = useState(false);
+
+    // Restore booking session (survives refresh) — but verify booking is still active first
+    useEffect(() => {
+        const saved = sessionStorage.getItem(`kas_booking_${id}`);
+        if (saved) {
+            try {
+                const { bookingId: bid, token: tok } = JSON.parse(saved);
+                if (bid && authToken) {
+                    // Verify the booking is still pending/active before restoring
+                    fetch(`http://localhost:5000/api/bookings/my`, {
+                        headers: { 'x-auth-token': authToken }
+                    }).then(r => r.json()).then(data => {
+                        const bookings = data.data || [];
+                        const match = bookings.find(b => b._id === bid);
+                        if (match && !['Completed', 'Cancelled'].includes(match.status)) {
+                            setBookingId(bid);
+                            setToken(tok || '');
+                            setBooked(true);
+                        } else {
+                            // Stale session — booking is done or cancelled, start fresh
+                            sessionStorage.removeItem(`kas_booking_${id}`);
+                        }
+                    }).catch(() => {
+                        // Network error — clear stale session to be safe
+                        sessionStorage.removeItem(`kas_booking_${id}`);
+                    });
+                }
+            } catch { /* ignore */ }
+        }
+    }, [id, authToken]);
 
     // ── Fetch Equipment ──────────────────────────────────────
     useEffect(() => {
@@ -57,6 +100,14 @@ export default function Booking() {
                 const data = await res.json();
                 if (data.success) {
                     setEquip(data.data);
+                    // If equipment is available again, any saved booking session is stale — clear it
+                    if (data.data?.isAvailable) {
+                        sessionStorage.removeItem(`kas_booking_${id}`);
+                        // Also reset booking state in case session restore already ran
+                        setBooked(false);
+                        setBookingId(null);
+                        setToken('');
+                    }
                 } else {
                     setApiError(data.message || 'Equipment not found.');
                 }
@@ -115,7 +166,12 @@ export default function Booking() {
             });
             const data = await res.json();
             if (res.ok) {
-                setToken(data.handoverToken); // Real 6-digit token from backend
+                const bid = data.data?._id || data.data?.id;
+                const tok = data.handoverToken;
+                setToken(tok);
+                setBookingId(bid);
+                // Persist for cancel (survives refresh)
+                sessionStorage.setItem(`kas_booking_${id}`, JSON.stringify({ bookingId: bid, token: tok }));
                 setBooked(true);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
@@ -133,19 +189,97 @@ export default function Booking() {
         setTimeout(() => setCopied(false), 2000);
     }
 
+    // ── Cancel Booking ───────────────────────────────────────
+    async function handleCancelBooking() {
+        if (!bookingId) return;
+        setCancelling(true);
+        try {
+            const res = await fetch(`http://localhost:5000/api/bookings/${bookingId}/cancel`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
+                body: JSON.stringify({ reason: cancelReason || 'Cancelled by renter' })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setCancelled(true);
+                setShowCancelConfirm(false);
+                sessionStorage.removeItem(`kas_booking_${id}`); // clear persisted session
+            } else {
+                await kasAlert(data.message || 'Cancellation failed. Please try again.');
+            }
+        } catch {
+            await kasAlert('Network error during cancellation.');
+        }
+        setCancelling(false);
+    }
+
     // ── Generate PDF Bill ────────────────────────────────────
-    function generateBill() {
-        const RENTER = {
-            name: `${currentUser?.name?.first || ''} ${currentUser?.name?.last || ''}`.trim() || 'Valued Renter',
-            mobile: currentUser?.mobile || 'N/A',
-            email: currentUser?.email || 'N/A',
-            aadhaar: currentUser?.aadhaar ? `XXXX-XXXX-${currentUser.aadhaar.slice(-4)}` : 'N/A',
-            village: currentUser?.address?.village || 'N/A',
-            district: currentUser?.address?.district || 'N/A',
-            state: currentUser?.address?.state || 'Maharashtra',
-            pinCode: currentUser?.address?.pinCode || 'N/A'
+    async function generateBill() {
+        // Fetch fresh renter profile so all address/finance fields are present
+        let renterProfile = currentUser || {};
+        try {
+            const res = await fetch('http://localhost:5000/api/user/profile', {
+                headers: { 'x-auth-token': authToken }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                renterProfile = data?.data ?? data;
+            }
+        } catch { /* fall back to currentUser */ }
+
+        const owner = equip?.owner || {};
+        const ownerAddr = owner.address || {};
+        const ownerFinance = owner.finance || {};
+        const ownerName = [owner.name?.first, owner.name?.middle, owner.name?.last].filter(Boolean).join(' ') || 'KAS Lender';
+
+        const LENDER = {
+            name: ownerName,
+            email: owner.email || 'N/A',
+            mobile: owner.mobile || 'N/A',
+            // Address
+            houseNo: ownerAddr.houseNo || 'N/A',
+            village: ownerAddr.village || 'N/A',
+            postOffice: ownerAddr.postOffice || 'N/A',
+            gpWard: ownerAddr.gpWard || 'N/A',
+            block: ownerAddr.block || 'N/A',
+            policeStation: ownerAddr.policeStation || 'N/A',
+            landmark: ownerAddr.landmark || 'N/A',
+            district: ownerAddr.district || 'N/A',
+            state: ownerAddr.state || 'N/A',
+            pinCode: ownerAddr.pinCode || 'N/A',
+            // Bank
+            bankName: ownerFinance.bankName || 'N/A',
+            branchName: ownerFinance.branchName || 'N/A',
+            accountNo: ownerFinance.accountNo || 'N/A',
+            ifscCode: ownerFinance.ifscCode || 'N/A',
+            upiId: ownerFinance.upiId || 'N/A',
         };
 
+        const rAddr = renterProfile?.address || {};
+        const rFinance = renterProfile?.finance || {};
+        const RENTER = {
+            name: [renterProfile?.name?.first, renterProfile?.name?.middle, renterProfile?.name?.last].filter(Boolean).join(' ') || 'Valued Renter',
+            email: renterProfile?.email || 'N/A',
+            mobile: renterProfile?.mobile || 'N/A',
+            aadhaar: renterProfile?.aadhaarNo ? `XXXX-XXXX-${renterProfile.aadhaarNo.slice(-4)}` : 'N/A',
+            // Address
+            houseNo: rAddr.houseNo || 'N/A',
+            village: rAddr.village || 'N/A',
+            postOffice: rAddr.postOffice || 'N/A',
+            gpWard: rAddr.gpWard || 'N/A',
+            block: rAddr.block || 'N/A',
+            policeStation: rAddr.policeStation || 'N/A',
+            landmark: rAddr.landmark || 'N/A',
+            district: rAddr.district || 'N/A',
+            state: rAddr.state || 'N/A',
+            pinCode: rAddr.pinCode || 'N/A',
+            // Bank
+            bankName: rFinance.bankName || 'N/A',
+            branchName: rFinance.branchName || 'N/A',
+            accountNo: rFinance.accountNo || 'N/A',
+            ifscCode: rFinance.ifscCode || 'N/A',
+            upiId: rFinance.upiId || 'N/A',
+        };
 
         const now = new Date();
         const billNo = `KAS-BILL-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${token.slice(-4)}`;
@@ -157,34 +291,24 @@ export default function Booking() {
         const H = doc.internal.pageSize.getHeight();
 
         // ── LOGO WATERMARK (vector drawn — no async needed) ──────
-        // Draw KAS tractor logo as jsPDF vector shapes, faint, centred
         const drawLogo = (ox, oy, scale) => {
-            // Outer circle
             doc.setFillColor(241, 248, 233); doc.setDrawColor(139, 195, 74); doc.setLineWidth(0.5);
             doc.circle(ox, oy, 29 * scale, 'FD');
-            // Tractor body
             doc.setFillColor(46, 125, 50); doc.setDrawColor(46, 125, 50);
             doc.roundedRect(ox - 14 * scale, oy + 2 * scale, 18 * scale, 11 * scale, 1, 1, 'F');
-            // Cab
             doc.setFillColor(56, 142, 60);
             doc.roundedRect(ox - 1 * scale, oy - 6 * scale, 10 * scale, 9 * scale, 1, 1, 'F');
-            // Cab window
             doc.setFillColor(165, 214, 167);
             doc.roundedRect(ox, oy - 5 * scale, 7 * scale, 5 * scale, 0.5, 0.5, 'F');
-            // Exhaust
             doc.setFillColor(27, 94, 32);
             doc.roundedRect(ox + 8 * scale, oy - 10 * scale, 2 * scale, 5 * scale, 0.5, 0.5, 'F');
-            // Big rear wheel
             doc.setFillColor(27, 94, 32); doc.circle(ox - 8 * scale, oy + 13 * scale, 7.5 * scale, 'F');
             doc.setFillColor(46, 125, 50); doc.circle(ox - 8 * scale, oy + 13 * scale, 4.5 * scale, 'F');
             doc.setFillColor(139, 195, 74); doc.circle(ox - 8 * scale, oy + 13 * scale, 1.5 * scale, 'F');
-            // Small front wheel
             doc.setFillColor(27, 94, 32); doc.circle(ox + 5 * scale, oy + 13 * scale, 4.5 * scale, 'F');
             doc.setFillColor(46, 125, 50); doc.circle(ox + 5 * scale, oy + 13 * scale, 2.5 * scale, 'F');
-            // Ground line
             doc.setDrawColor(139, 195, 74); doc.setLineWidth(0.8);
             doc.line(ox - 25 * scale, oy + 19 * scale, ox + 25 * scale, oy + 19 * scale);
-            // Wheat left stalk
             doc.setDrawColor(85, 139, 47); doc.setLineWidth(0.7);
             doc.line(ox - 20 * scale, oy + 4 * scale, ox - 18 * scale, oy - 18 * scale);
             doc.setFillColor(139, 195, 74);
@@ -198,10 +322,7 @@ export default function Booking() {
         doc.rect(0, 0, W, 42, 'F');
         doc.setFillColor(46, 125, 50);
         doc.rect(0, 38, W, 4, 'F');
-
-        // Small KAS logo in header top-right
         drawLogo(W - 16, 18, 0.45);
-
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(18); doc.setFont('helvetica', 'bold');
         doc.text('Krishi Astra Setu', 14, 14);
@@ -209,7 +330,6 @@ export default function Booking() {
         doc.text('Farm Equipment Rental Platform', 14, 20);
         doc.text('Website: www.krishiastrasetu.in  |  Email: support@krishiastrasetu.in  |  Phone: +91 800 000 1234', 14, 26);
         doc.text('GST No: 27AABCK1234M1Z5  |  CIN: U74999MH2025PTC123456  |  Registered in Maharashtra, India', 14, 32);
-
         doc.setFontSize(12); doc.setFont('helvetica', 'bold');
         doc.text('TAX INVOICE', W - 32, 12, { align: 'right' });
         doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
@@ -233,56 +353,123 @@ export default function Booking() {
         doc.setTextColor(255, 255, 255); doc.setFontSize(18); doc.setFont('helvetica', 'bold');
         doc.text(token, W / 2, 75, { align: 'center' });
 
+        // ── Helper: draw a keyed-value table block ───────────────
         let y = 83;
-        const colW = (W - 28 - 6) / 2;
 
-        // ── LENDER & RENTER SIDE-BY-SIDE ────────────────────────
-        doc.setFillColor(46, 125, 50); doc.rect(14, y, W - 28, 7, 'F');
-        doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
-        doc.text('LENDER DETAILS', 14 + colW / 2, y + 5, { align: 'center' });
-        doc.text('RENTER DETAILS', 14 + colW + 6 + colW / 2, y + 5, { align: 'center' });
-        y += 7;
-
-        const lenderRows = [
-            ['Name', equip?.owner?.name || 'KAS Lender'],
-            ['Contact', equip?.owner?.mobile || 'N/A'],
-            ['Location', `${equip?.location?.village}, ${equip?.location?.district}`],
-            ['Equipment', equip?.name || 'Machine'],
-            ['Category', equip?.category || 'Equipment'],
-            ['Rating', `${equip?.rating || 4.5}/5 (${equip?.reviewCount || 0} reviews)`],
-        ];
-        const renterRows = [
-            ['Name', RENTER.name], ['Mobile', RENTER.mobile], ['Email', RENTER.email],
-            ['Aadhaar', RENTER.aadhaar], ['Village', RENTER.village],
-            ['District/State', `${RENTER.district}, ${RENTER.state} - ${RENTER.pinCode}`],
-        ];
-
-
-        const drawBox = (sx, sy, rows, bw) => {
-            rows.forEach((r, i) => {
-                doc.setFillColor(i % 2 === 0 ? 249 : 255, i % 2 === 0 ? 250 : 255, i % 2 === 0 ? 251 : 255);
-                doc.rect(sx, sy, bw, 7, 'F');
-                doc.setDrawColor(229, 231, 235); doc.rect(sx, sy, bw, 7, 'S');
-                doc.setTextColor(107, 114, 128); doc.setFontSize(7); doc.setFont('helvetica', 'bold');
-                doc.text(r[0], sx + 2, sy + 4.5);
-                doc.setTextColor(17, 24, 39); doc.setFont('helvetica', 'normal');
-                doc.text(String(r[1]), sx + bw - 2, sy + 4.5, { align: 'right', maxWidth: bw - 22 });
-                sy += 7;
-            });
-            return sy;
+        const sectionHeader = (label, color = [46, 125, 50]) => {
+            doc.setFillColor(...color); doc.rect(14, y, W - 28, 7, 'F');
+            doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+            doc.text(label, W / 2, y + 5, { align: 'center' });
+            y += 7;
         };
 
-        const endL = drawBox(14, y, lenderRows, colW);
-        const endR = drawBox(14 + colW + 6, y, renterRows, colW);
-        y = Math.max(endL, endR) + 6;
+        const drawRows = (rows) => {
+            const bw = W - 28;
+            rows.forEach((r, i) => {
+                doc.setFillColor(i % 2 === 0 ? 249 : 255, i % 2 === 0 ? 250 : 255, i % 2 === 0 ? 251 : 255);
+                doc.rect(14, y, bw, 6.5, 'F');
+                doc.setDrawColor(229, 231, 235); doc.rect(14, y, bw, 6.5, 'S');
+                doc.setTextColor(107, 114, 128); doc.setFontSize(7.2); doc.setFont('helvetica', 'bold');
+                doc.text(r[0], 16, y + 4.5);
+                doc.setTextColor(17, 24, 39); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+                doc.text(String(r[1] ?? 'N/A'), 14 + bw - 2, y + 4.5, { align: 'right', maxWidth: bw - 40 });
+                y += 6.5;
+            });
+            y += 3;
+        };
+
+        const subHeader = (label) => {
+            doc.setFillColor(232, 245, 233); doc.rect(14, y, W - 28, 5.5, 'F');
+            doc.setDrawColor(187, 247, 208); doc.rect(14, y, W - 28, 5.5, 'S');
+            doc.setTextColor(27, 94, 32); doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+            doc.text(`— ${label} —`, W / 2, y + 4, { align: 'center' });
+            y += 5.5;
+        };
+
+        // ── LENDER DETAILS ───────────────────────────────────────
+        sectionHeader('LENDER DETAILS');
+        subHeader('Personal Information');
+        drawRows([
+            ['Full Name', LENDER.name],
+            ['Email ID', LENDER.email],
+            ['Mobile No.', LENDER.mobile],
+        ]);
+        subHeader('Full Address');
+        drawRows([
+            ['House / Premise No.', LENDER.houseNo],
+            ['Village / Town / City', LENDER.village],
+            ['Post Office', LENDER.postOffice],
+            ['GP / Ward No.', LENDER.gpWard],
+            ['Taluka / Block', LENDER.block],
+            ['Police Station', LENDER.policeStation],
+            ['Landmark', LENDER.landmark],
+            ['District', LENDER.district],
+            ['State', LENDER.state],
+            ['PIN Code', LENDER.pinCode],
+        ]);
+        subHeader('Bank Details');
+        drawRows([
+            ['Bank Name', LENDER.bankName],
+            ['Branch Name', LENDER.branchName],
+            ['Account Number', LENDER.accountNo],
+            ['IFSC Code', LENDER.ifscCode],
+            ['UPI ID', LENDER.upiId],
+        ]);
+
+        // ── RENTER DETAILS ───────────────────────────────────────
+        sectionHeader('RENTER DETAILS');
+        subHeader('Personal Information');
+        drawRows([
+            ['Full Name', RENTER.name],
+            ['Email ID', RENTER.email],
+            ['Mobile No.', RENTER.mobile],
+            ['Aadhaar No.', RENTER.aadhaar],
+        ]);
+
+        // ── PAGE BREAK: Renter address + bank start on a fresh page ──
+        doc.addPage();
+        y = 14;
+
+        subHeader('Full Address');
+        drawRows([
+            ['House / Premise No.', RENTER.houseNo],
+            ['Village / Town / City', RENTER.village],
+            ['Post Office', RENTER.postOffice],
+            ['GP / Ward No.', RENTER.gpWard],
+            ['Taluka / Block', RENTER.block],
+            ['Police Station', RENTER.policeStation],
+            ['Landmark', RENTER.landmark],
+            ['District', RENTER.district],
+            ['State', RENTER.state],
+            ['PIN Code', RENTER.pinCode],
+        ]);
+        subHeader('Bank Details');
+        drawRows([
+            ['Bank Name', RENTER.bankName],
+            ['Branch Name', RENTER.branchName],
+            ['Account Number', RENTER.accountNo],
+            ['IFSC Code', RENTER.ifscCode],
+            ['UPI ID', RENTER.upiId],
+        ]);
+
+        // ── EQUIPMENT DETAILS ────────────────────────────────────
+        sectionHeader('EQUIPMENT DETAILS', [27, 94, 32]);
+        drawRows([
+            ['Equipment Name', equip?.name || 'N/A'],
+            ['Category', equip?.category || 'N/A'],
+            ['Brand', equip?.brand || 'N/A'],
+            ['Model No.', equip?.modelNo || equip?.model || 'N/A'],
+            ['Condition', equip?.condition || 'N/A'],
+            ['Fuel Type', equip?.fuelType || 'N/A'],
+            ['Rating', equip?.rating ? `${equip.rating}/5 ⭐ (${equip.reviewCount || 0} reviews)` : '—'],
+            ['Quantity', '1'],
+            ['Price per Hour', `Rs. ${equip?.priceHr?.toLocaleString('en-IN') || 'N/A'}`],
+            ['Equipment Location', [equip?.location?.village, equip?.location?.district, equip?.location?.state].filter(Boolean).join(', ') || 'N/A'],
+        ]);
 
         // ── RENTAL PERIOD & PRICE BREAKDOWN ──────────────────────
-        doc.setFillColor(46, 125, 50); doc.rect(14, y, W - 28, 7, 'F');
-        doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
-        doc.text('RENTAL PERIOD & PRICE BREAKDOWN', W / 2, y + 5, { align: 'center' });
-        y += 7;
-
-        const tableResult = autoTable(doc, {
+        sectionHeader('RENTAL PERIOD & PRICE BREAKDOWN');
+        autoTable(doc, {
             startY: y,
             head: [['Description', 'Rate / Info', 'Amount (INR)']],
             body: [
@@ -437,6 +624,44 @@ export default function Booking() {
                         Download Bill PDF
                     </button>
 
+                    {/* Cancel Booking */}
+                    {!cancelled ? (
+                        !showCancelConfirm ? (
+                            <button
+                                type="button"
+                                onClick={() => setShowCancelConfirm(true)}
+                                style={{ width: '100%', padding: '13px', borderRadius: '12px', border: '2px solid #FCA5A5', background: '#FFF7F7', color: '#DC2626', fontSize: '14px', fontWeight: 700, cursor: 'pointer', marginBottom: '12px', transition: 'all 0.2s' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = '#FFF7F7'; }}
+                            >
+                                ✕ Cancel Booking
+                            </button>
+                        ) : (
+                            <div style={{ background: '#FFF7F7', border: '2px solid #FCA5A5', borderRadius: '14px', padding: '18px', marginBottom: '12px', textAlign: 'left' }}>
+                                <p style={{ fontWeight: 700, color: '#DC2626', fontSize: '14px', marginBottom: '8px' }}>⚠️ Confirm Cancellation</p>
+                                <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '12px' }}>This will cancel your booking and initiate a refund. The equipment will be made available again.</p>
+                                <textarea
+                                    placeholder="Reason for cancellation (optional)..."
+                                    value={cancelReason}
+                                    onChange={e => setCancelReason(e.target.value)}
+                                    rows={2}
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid #FCA5A5', fontSize: '13px', resize: 'none', outline: 'none', boxSizing: 'border-box', marginBottom: '12px' }}
+                                />
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button onClick={() => setShowCancelConfirm(false)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '2px solid #E5E7EB', background: '#fff', color: '#374151', fontWeight: 700, cursor: 'pointer' }}>Keep Booking</button>
+                                    <button onClick={handleCancelBooking} disabled={cancelling} style={{ flex: 1, padding: '10px', borderRadius: '8px', background: '#DC2626', color: '#fff', fontWeight: 700, border: 'none', cursor: cancelling ? 'not-allowed' : 'pointer', opacity: cancelling ? 0.7 : 1 }}>
+                                        {cancelling ? 'Cancelling…' : 'Yes, Cancel'}
+                                    </button>
+                                </div>
+                            </div>
+                        )
+                    ) : (
+                        <div style={{ background: '#FFF7F7', border: '2px solid #FCA5A5', borderRadius: '14px', padding: '18px', marginBottom: '12px', textAlign: 'center' }}>
+                            <p style={{ fontWeight: 800, color: '#DC2626', fontSize: '16px', marginBottom: '6px' }}>✅ Booking Cancelled</p>
+                            <p style={{ color: '#6B7280', fontSize: '13px' }}>Your booking has been cancelled and a refund has been initiated.</p>
+                        </div>
+                    )}
+
                     <div style={{ display: 'flex', gap: '12px' }}>
                         <Link to="/marketplace" style={{ flex: 1, display: 'block', padding: '13px', borderRadius: '12px', border: '2px solid #E5E7EB', textAlign: 'center', fontSize: '14px', fontWeight: 700, color: '#374151', textDecoration: 'none' }}>
                             Browse More
@@ -451,7 +676,7 @@ export default function Booking() {
     }
 
     // ── 📋 Booking Form Screen ──────────────────────────────
-    return (
+    const formScreen = (
         <div style={s.page}>
             {/* Top Bar */}
             <div style={s.topBar}>
@@ -531,38 +756,132 @@ export default function Booking() {
 
                     {/* Equipment card */}
                     <div style={s.card}>
-                        <div style={{ height: '140px', background: 'linear-gradient(135deg, #F1F8E9, #DCEDC8)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-                            <Tractor size={64} color="#2E7D32" strokeWidth={1.2} />
+                        {/* ── Equipment Photo Carousel ── */}
+                        {(() => {
+                            const imgs = equip.images || [];
+                            const slideTo = (dir, e) => {
+                                e.stopPropagation();
+                                if (bSliding || imgs.length < 2) return;
+                                setBSliding(true);
+                                setTimeout(() => {
+                                    setCarouselBIdx(i => dir === 'next'
+                                        ? (i + 1) % imgs.length
+                                        : (i - 1 + imgs.length) % imgs.length);
+                                    setBSliding(false);
+                                }, 280);
+                            };
+                            return (
+                                <div style={{ position: 'relative', height: '180px', borderRadius: '12px', overflow: 'hidden', background: 'linear-gradient(135deg,#F1F8E9,#DCEDC8)', marginBottom: '16px' }}>
+                                    {imgs.length > 0 ? (
+                                        <>
+                                            <img
+                                                src={imgs[carouselBIdx]}
+                                                alt={equip.name}
+                                                onClick={() => setLightboxBIdx(carouselBIdx)}
+                                                style={{
+                                                    width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in',
+                                                    transform: bSliding ? 'scale(0.94) translateX(4%)' : 'scale(1)',
+                                                    opacity: bSliding ? 0.5 : 1,
+                                                    transition: 'transform 0.28s ease, opacity 0.28s ease'
+                                                }}
+                                            />
+                                            {/* Zoom hint */}
+                                            <div onClick={() => setLightboxBIdx(carouselBIdx)}
+                                                style={{
+                                                    position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    background: 'transparent', cursor: 'zoom-in', transition: 'background 0.2s'
+                                                }}
+                                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.15)'}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                            >
+                                                <div style={{ background: 'rgba(255,255,255,0.85)', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', opacity: 0, transition: 'opacity 0.2s' }}
+                                                    onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                                                    onMouseLeave={e => e.currentTarget.style.opacity = 0}>
+                                                    <ZoomIn size={18} color="#2E7D32" />
+                                                </div>
+                                            </div>
+                                            {imgs.length > 1 && <>
+                                                <button onClick={e => slideTo('prev', e)} style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.88)', border: 'none', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 1px 5px rgba(0,0,0,0.18)', zIndex: 2 }}><ChevronLeft size={16} /></button>
+                                                <button onClick={e => slideTo('next', e)} style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.88)', border: 'none', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 1px 5px rgba(0,0,0,0.18)', zIndex: 2 }}><ChevronRight size={16} /></button>
+                                                <div style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5, zIndex: 2 }}>
+                                                    {imgs.map((_, i) => <span key={i} onClick={e => { e.stopPropagation(); setCarouselBIdx(i); }} style={{ width: i === carouselBIdx ? 18 : 6, height: 6, borderRadius: 999, background: i === carouselBIdx ? '#fff' : 'rgba(255,255,255,0.55)', cursor: 'pointer', transition: 'all 0.3s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />)}
+                                                </div>
+                                                <span style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 999, zIndex: 2 }}>{carouselBIdx + 1}/{imgs.length}</span>
+                                            </>}
+                                        </>
+                                    ) : (
+                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Tractor size={64} color="#2E7D32" strokeWidth={1.2} />
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
+                        {/* ── Rental Rates ── */}
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                            {equip.priceHr != null && (
+                                <div style={{ flex: 1, minWidth: '110px', background: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)', border: '1.5px solid #BBF7D0', borderRadius: '12px', padding: '10px 14px', textAlign: 'center' }}>
+                                    <p style={{ fontSize: '11px', color: '#6B7280', fontWeight: 700, margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Per Hour</p>
+                                    <p style={{ fontSize: '20px', fontWeight: 900, color: '#15803D', margin: 0 }}>₹{equip.priceHr.toLocaleString('en-IN')}</p>
+                                </div>
+                            )}
+                            {equip.priceDay != null && (
+                                <div style={{ flex: 1, minWidth: '110px', background: 'linear-gradient(135deg, #EFF6FF, #DBEAFE)', border: '1.5px solid #BFDBFE', borderRadius: '12px', padding: '10px 14px', textAlign: 'center' }}>
+                                    <p style={{ fontSize: '11px', color: '#6B7280', fontWeight: 700, margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Per Day</p>
+                                    <p style={{ fontSize: '20px', fontWeight: 900, color: '#1D4ED8', margin: 0 }}>₹{equip.priceDay.toLocaleString('en-IN')}</p>
+                                </div>
+                            )}
                         </div>
+
+                        {/* ── Name & Badge ── */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#111827', lineHeight: 1.3 }}>{equip.name}</h3>
+                            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#111827', lineHeight: 1.3, wordBreak: 'break-word', flex: 1 }}>{equip.name}</h3>
                             {equip.verified && (
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#F0FDF4', color: '#15803D', fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px', flexShrink: 0 }}>
                                     <ShieldCheck size={11} /> Verified
                                 </span>
                             )}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '8px 0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '8px 0 4px' }}>
                             <Star size={13} fill="#8BC34A" strokeWidth={0} />
                             <span style={{ fontSize: '13px', fontWeight: 700, color: '#374151' }}>{equip.rating}</span>
-                            <span style={{ fontSize: '12px', color: '#9CA3AF' }}>({equip.reviews} reviews)</span>
+                            <span style={{ fontSize: '12px', color: '#9CA3AF' }}>({equip.reviews || equip.reviewCount || 0} reviews)</span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-                            <MapPin size={13} color="#8BC34A" />
-                            <span style={{ fontSize: '13px', color: '#6B7280' }}>
-                                {equip.location?.village}, {equip.location?.district}
-                            </span>
+
+                        {/* ── Full Location ── */}
+                        <div style={{ background: '#F9FAFB', borderRadius: '10px', padding: '10px 12px', marginBottom: '12px', borderLeft: '3px solid #2E7D32' }}>
+                            <p style={{ fontSize: '11px', fontWeight: 800, color: '#2E7D32', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <MapPin size={11} /> Equipment Location
+                            </p>
+                            <p style={{ fontSize: '13px', color: '#374151', lineHeight: 1.6, margin: 0, wordBreak: 'break-word' }}>
+                                {[equip.location?.houseNo, equip.location?.village, equip.location?.landmark, equip.location?.block, equip.location?.district, equip.location?.state, equip.location?.pinCode ? `PIN: ${equip.location.pinCode}` : null].filter(Boolean).join(', ')}
+                            </p>
                         </div>
-                        <p style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.6, borderTop: '1px solid #F3F4F6', paddingTop: '12px' }}>{equip.description}</p>
-                        <div style={{ marginTop: '12px', padding: '10px', background: '#F9FAFB', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#2E7D32', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: 800 }}>
-                                {(equip.owner?.name?.first?.[0] || 'L').toUpperCase()}
+
+                        {/* ── Description ── */}
+                        {equip.description && (
+                            <p style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.6, borderTop: '1px solid #F3F4F6', paddingTop: '12px', marginBottom: '12px', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>{equip.description}</p>
+                        )}
+
+                        {/* ── Lender card ── */}
+                        <div style={{ background: '#F9FAFB', borderRadius: '10px', padding: '10px 12px', borderLeft: '3px solid #8BC34A' }}>
+                            <p style={{ fontSize: '11px', fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>Listed By</p>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                                <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg,#2E7D32,#8BC34A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '15px', fontWeight: 800, flexShrink: 0 }}>
+                                    {(equip.owner?.name?.first?.[0] || 'L').toUpperCase()}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ fontSize: '13px', fontWeight: 800, color: '#111827', margin: '0 0 2px', wordBreak: 'break-word' }}>{equip.owner?.name?.first} {equip.owner?.name?.last}</p>
+                                    <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 4px' }}>{equip.owner?.mobile ? `📞 ${equip.owner.mobile}` : ''}</p>
+                                    {equip.owner?.address && (
+                                        <p style={{ fontSize: '11px', color: '#9CA3AF', margin: 0, wordBreak: 'break-word', lineHeight: 1.4 }}>
+                                            📍 {[equip.owner.address.village, equip.owner.address.district, equip.owner.address.state].filter(Boolean).join(', ')}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
-                            <div>
-                                <p style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>{equip.owner?.name?.first} {equip.owner?.name?.last}</p>
-                                <p style={{ fontSize: '12px', color: '#9CA3AF' }}>{equip.owner?.mobile}</p>
-                            </div>
                         </div>
+
                     </div>
 
                     {/* Price breakdown */}
@@ -621,5 +940,30 @@ export default function Booking() {
                 </div>
             </div>
         </div>
+    );
+
+    // Append lightbox outside the main JSX so it overlays everything
+    return (
+        <>
+            {formScreen}
+            {lightboxBIdx !== null && (equip?.images?.length > 0) && (() => {
+                const imgs = equip.images;
+                const goTo = dir => setLightboxBIdx(i => dir === 'next' ? (i + 1) % imgs.length : (i - 1 + imgs.length) % imgs.length);
+                return (
+                    <div onClick={() => setLightboxBIdx(null)} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)' }}>
+                        <button onClick={() => setLightboxBIdx(null)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 40, height: 40, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 2 }}><X size={22} /></button>
+                        {imgs.length > 1 && <button onClick={e => { e.stopPropagation(); goTo('prev'); }} style={{ position: 'absolute', left: 16, background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 44, height: 44, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 2 }}><ChevronLeft size={26} /></button>}
+                        <img src={imgs[lightboxBIdx]} alt="equipment" onClick={e => e.stopPropagation()} style={{ maxWidth: '90vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 12, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }} />
+                        {imgs.length > 1 && <button onClick={e => { e.stopPropagation(); goTo('next'); }} style={{ position: 'absolute', right: 16, background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 44, height: 44, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 2 }}><ChevronRight size={26} /></button>}
+                        {imgs.length > 1 && (
+                            <div style={{ position: 'absolute', bottom: 24, display: 'flex', gap: 8 }}>
+                                {imgs.map((_, i) => <span key={i} onClick={e => { e.stopPropagation(); setLightboxBIdx(i); }} style={{ width: i === lightboxBIdx ? 24 : 8, height: 8, borderRadius: 999, background: i === lightboxBIdx ? '#fff' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.3s' }} />)}
+                            </div>
+                        )}
+                        {imgs.length > 1 && <span style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 600 }}>{lightboxBIdx + 1} / {imgs.length}</span>}
+                    </div>
+                );
+            })()}
+        </>
     );
 }

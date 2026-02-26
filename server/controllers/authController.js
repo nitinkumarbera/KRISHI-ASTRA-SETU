@@ -37,8 +37,11 @@ exports.registerUser = async (req, res) => {
             mobile, email, aadhaarNo, password,
             houseNo, village, postOffice, gpWard, block,
             policeStation, landmark, district, pinCode, state,
-            bankName, branchName, accountNo, ifscCode, upiId
+            bankName, branchName, accountNo, ifscCode, upiId, customBankName
         } = req.body;
+
+        // If user selected 'Other', use their custom text instead
+        const effectiveBankName = bankName === 'Other' && customBankName ? customBankName.trim() : bankName;
 
         // 1. Uniqueness check
         const existing = await User.findOne({
@@ -71,7 +74,7 @@ exports.registerUser = async (req, res) => {
             gender, dob, age, mobile, email, aadhaarNo,
             password: hashedPassword,
             address: { houseNo, village, postOffice, gpWard, block, policeStation, landmark, district, pinCode, state },
-            finance: { bankName, branchName, accountNo, ifscCode, upiId, qrCodeUrl },
+            finance: { bankName: effectiveBankName, branchName, accountNo, ifscCode, upiId, qrCodeUrl },
             documents: {
                 passportPhoto: passportPhotoUrl,
                 aadhaarImage: aadhaarImageUrl,

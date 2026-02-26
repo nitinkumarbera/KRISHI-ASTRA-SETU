@@ -10,6 +10,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const equipmentRoutes = require('./routes/equipmentRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 
 
 const app = express();
@@ -17,12 +18,12 @@ const PORT = process.env.PORT || 5000;
 
 // ── Middleware ─────────────────────────────────────────────
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Multer for handling file uploads (KYC docs)
 const storage = multer.memoryStorage(); // stored in memory → streamed to Cloudinary
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } }); // max 5MB
+const upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } }); // max 20MB — KYC docs can be high-res scans
 app.use('/api/auth/register', upload.fields([
     { name: 'passportPhoto', maxCount: 1 },
     { name: 'aadhaarImage', maxCount: 1 },
@@ -43,6 +44,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 
 // ── Health check ───────────────────────────────────────────

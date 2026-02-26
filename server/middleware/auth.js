@@ -1,13 +1,18 @@
 const jwt = require('jsonwebtoken');
 
 // ── JWT Auth Middleware ─────────────────────────────────────
-// Attach this to any route you want to protect.
-// Usage: router.get('/profile', authMiddleware, handler)
+// Accepts token from either:
+//   1. x-auth-token: <token>           (used by the React frontend)
+//   2. Authorization: Bearer <token>   (standard REST convention)
 // ──────────────────────────────────────────────────────────
 module.exports = function authMiddleware(req, res, next) {
-    // Expect:  Authorization: Bearer <token>
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    // Try x-auth-token first (frontend default), then fallback to Bearer
+    let token = req.headers['x-auth-token'];
+
+    if (!token) {
+        const authHeader = req.headers['authorization'];
+        token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    }
 
     if (!token) {
         return res.status(401).json({ success: false, message: 'Access denied. No token provided.' });

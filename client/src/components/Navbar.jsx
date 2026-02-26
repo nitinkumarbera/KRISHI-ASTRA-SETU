@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
     Search, Heart, CalendarDays, UserCircle2, Menu, X, ChevronDown,
     LogOut, ShieldCheck, Bell, Clock, CheckCircle2, AlertCircle, Info
@@ -8,11 +8,13 @@ import logo from "../assets/logo.svg";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 
-const NAV_LINKS = (t) => [
-    { label: t('nav.marketplace'), to: "/marketplace" },
-    { label: t('nav.about'), to: "/about" },
-    { label: t('nav.contact'), to: "/contact" },
+const NAV_LINKS = (t, isAuthenticated) => [
+    { label: 'Home', to: '/' },
+    { label: t('nav.marketplace'), to: isAuthenticated ? '/marketplace' : '/login', state: !isAuthenticated ? { from: '/marketplace' } : undefined },
+    { label: t('nav.about'), to: '/about' },
+    { label: t('nav.contact'), to: '/contact' },
 ];
+
 
 export default function Navbar() {
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -21,9 +23,16 @@ export default function Navbar() {
     const [notifOpen, setNotifOpen] = useState(false);
     const [langMenuOpen, setLangMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
-    const { user, isAuthenticated, authToken, isAdmin, logout } = useAuth();
+    const { user, isAuthenticated, token: authToken, isAdmin, logout } = useAuth();
     const { language, setLanguage, t } = useLanguage();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Determine if a nav link is active
+    const isActive = (to) => {
+        if (to === '/') return location.pathname === '/';
+        return location.pathname.startsWith(to);
+    };
 
     const languages = [
         { code: 'en', label: 'English' },
@@ -118,15 +127,36 @@ export default function Navbar() {
 
                     {/* Desktop nav links */}
                     <nav style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }} className="hidden md:flex">
-                        {NAV_LINKS(t).map(n => (
-                            <Link key={n.to} to={n.to}
-                                style={{ fontSize: "13px", fontWeight: 600, color: "#4B5563", textDecoration: "none", padding: "6px 10px", borderRadius: "8px", transition: "all 0.18s" }}
-                                onMouseEnter={e => { e.currentTarget.style.color = "#2E7D32"; e.currentTarget.style.background = "#F1F8E9"; }}
-                                onMouseLeave={e => { e.currentTarget.style.color = "#4B5563"; e.currentTarget.style.background = ""; }}
-                            >
-                                {n.label}
-                            </Link>
-                        ))}
+                        {NAV_LINKS(t, isAuthenticated).map(n => {
+                            const active = isActive(n.to);
+                            return (
+                                <Link key={n.to} to={n.to}
+                                    state={n.state}
+                                    style={{
+                                        fontSize: "13px", fontWeight: active ? 800 : 600,
+                                        color: active ? "#2E7D32" : "#4B5563",
+                                        textDecoration: "none", padding: "6px 10px",
+                                        borderRadius: "8px", transition: "all 0.18s",
+                                        background: active ? "#F1F8E9" : "transparent",
+                                        borderBottom: active ? "2px solid #2E7D32" : "2px solid transparent",
+                                    }}
+                                    onMouseEnter={e => { if (!active) { e.currentTarget.style.color = "#2E7D32"; e.currentTarget.style.background = "#F1F8E9"; } }}
+                                    onMouseLeave={e => { if (!active) { e.currentTarget.style.color = "#4B5563"; e.currentTarget.style.background = ""; } }}
+                                >
+                                    {n.label}
+                                </Link>
+                            );
+                        })}
+                        {/* List Your Tool — always visible in desktop nav */}
+                        <Link
+                            to={isAuthenticated ? "/add-equipment" : "/login"}
+                            state={!isAuthenticated ? { from: "/add-equipment" } : undefined}
+                            style={{ fontSize: "13px", fontWeight: 700, color: "#fff", textDecoration: "none", padding: "7px 14px", borderRadius: "10px", background: "#2E7D32", transition: "all 0.18s", border: "none" }}
+                            onMouseEnter={e => e.currentTarget.style.background = "#1B5E20"}
+                            onMouseLeave={e => e.currentTarget.style.background = "#2E7D32"}
+                        >
+                            🌾 {t('nav.list_tool')}
+                        </Link>
                     </nav>
 
                     {/* Right action buttons */}
@@ -254,6 +284,13 @@ export default function Navbar() {
                                         >
                                             <UserCircle2 size={16} /> My Profile
                                         </Link>
+                                        <Link to="/add-equipment" onClick={() => setUserMenuOpen(false)}
+                                            style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 16px", fontSize: "13px", fontWeight: 600, color: "#2E7D32", textDecoration: "none", borderTop: "1px solid #F3F4F6" }}
+                                            onMouseEnter={e => e.currentTarget.style.background = '#F1F8E9'}
+                                            onMouseLeave={e => e.currentTarget.style.background = ''}
+                                        >
+                                            🌾 {t('nav.list_tool')}
+                                        </Link>
                                         <button onClick={handleLogout}
                                             style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 16px", fontSize: "13px", fontWeight: 600, color: "#DC2626", background: "none", border: "none", width: "100%", cursor: "pointer", borderTop: "1px solid #F3F4F6" }}
                                             onMouseEnter={e => e.currentTarget.style.background = '#FEF2F2'}
@@ -298,6 +335,7 @@ export default function Navbar() {
                         {[
                             { label: "🏠 Home", to: "/" },
                             { label: "🚜 Marketplace", to: "/marketplace" },
+                            { label: "🌾 " + t('nav.list_tool'), to: isAuthenticated ? "/add-equipment" : "/login" },
                             { label: "ℹ️  About Us", to: "/about" },
                             { label: "📬 Contact", to: "/contact" },
                             { label: "🔒 Privacy Policy", to: "/privacy" },
