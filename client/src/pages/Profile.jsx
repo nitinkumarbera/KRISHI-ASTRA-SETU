@@ -1596,9 +1596,9 @@ export default function Profile() {
 
                 {/* ── 🔐 Security & Login Section ─────────────── */}
                 {activeTab === 'profile' && (
-                    <SecuritySection user={user} authToken={authToken} refreshUser={refreshUser} 
-                    onAccountDeleted={() => { logout?.(); navigate('/'); }}
-                />
+                    <SecuritySection user={user} authToken={authToken} refreshUser={refreshUser}
+                        onAccountDeleted={() => { logout?.(); navigate('/'); }}
+                    />
                 )}
 
 
@@ -1638,9 +1638,9 @@ export default function Profile() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                            <p style={{ fontSize: '16px', fontWeight: 900, color: '#2E7D32', margin: '0 0 4px' }}>₹{(b.totalAmount || 0).toLocaleString()}</p>
-                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                                            <p style={{ fontSize: '16px', fontWeight: 900, color: '#2E7D32', margin: 0 }}>₹{(b.totalAmount || 0).toLocaleString()}</p>
+                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                                 {b.status === 'Completed' && (
                                                     <button
                                                         onClick={() => { setSelectedBooking(b); setShowReviewModal(true); }}
@@ -1649,12 +1649,62 @@ export default function Profile() {
                                                         ⭐ {t('profile.rentals.rate_machine')}
                                                     </button>
                                                 )}
-                                                <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px', background: b.status === 'Completed' ? '#F0FDF4' : b.status === 'Rental_Started' ? '#E0F2F1' : '#FFFBEB', color: b.status === 'Completed' ? '#15803D' : b.status === 'Rental_Started' ? '#00796B' : '#92400E' }}>
-                                                    {b.status.toUpperCase()}
+
+                                                {/* ── Continue Payment CTAs ── */}
+                                                {b.status === 'Confirmed' && (
+                                                    <Link
+                                                        to={`/checkout/${b._id}`}
+                                                        style={{
+                                                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                            padding: '7px 16px', borderRadius: '10px', border: 'none',
+                                                            background: 'linear-gradient(135deg,#2E7D32,#388E3C)',
+                                                            color: '#fff', fontSize: '12px', fontWeight: 800,
+                                                            textDecoration: 'none', boxShadow: '0 3px 10px rgba(46,125,50,0.35)'
+                                                        }}
+                                                    >
+                                                        💳 Pay Lender
+                                                    </Link>
+                                                )}
+                                                {b.status === 'Lender_Paid' && (
+                                                    <Link
+                                                        to={`/checkout/${b._id}`}
+                                                        style={{
+                                                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                            padding: '7px 16px', borderRadius: '10px', border: 'none',
+                                                            background: 'linear-gradient(135deg,#F59E0B,#D97706)',
+                                                            color: '#fff', fontSize: '12px', fontWeight: 800,
+                                                            textDecoration: 'none', boxShadow: '0 3px 10px rgba(245,158,11,0.35)'
+                                                        }}
+                                                    >
+                                                        📄 Get Code + Pay Commission
+                                                    </Link>
+                                                )}
+                                                {b.status === 'Admin_Paid_Pending' && (
+                                                    <Link
+                                                        to={`/checkout/${b._id}`}
+                                                        style={{
+                                                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                            padding: '7px 16px', borderRadius: '10px', border: 'none',
+                                                            background: 'linear-gradient(135deg,#7C3AED,#6D28D9)',
+                                                            color: '#fff', fontSize: '12px', fontWeight: 800,
+                                                            textDecoration: 'none', boxShadow: '0 3px 10px rgba(124,58,237,0.35)'
+                                                        }}
+                                                    >
+                                                        ⏳ Awaiting Approval
+                                                    </Link>
+                                                )}
+
+                                                <span style={{
+                                                    fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
+                                                    background: b.status === 'Completed' ? '#F0FDF4' : b.status === 'Rental_Started' ? '#E0F2F1' : b.status === 'Lender_Paid' ? '#FFFBEB' : b.status === 'Admin_Paid_Pending' ? '#EDE9FE' : '#FFFBEB',
+                                                    color: b.status === 'Completed' ? '#15803D' : b.status === 'Rental_Started' ? '#00796B' : b.status === 'Lender_Paid' ? '#92400E' : b.status === 'Admin_Paid_Pending' ? '#5B21B6' : '#92400E'
+                                                }}>
+                                                    {b.status.replace(/_/g, ' ').toUpperCase()}
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
+
 
                                     {/* ── Geo-Tagged Photo Upload (only for Rental_Started) ── */}
                                     {b.status === 'Rental_Started' && (
