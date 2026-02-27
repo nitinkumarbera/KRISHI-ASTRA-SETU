@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { kasAlert } from '../components/KasDialog';
 import { Mail, MapPin, Phone, Send } from 'lucide-react';
 
 const CONTACT_INFO = [
@@ -32,8 +33,8 @@ export default function Contact() {
             });
             const data = await res.json();
             if (res.ok) { setSubmitted(true); }
-            else { alert(data.message || 'Failed to send. Please try again.'); }
-        } catch { alert('Network error. Please check your connection.'); }
+            else { await kasAlert(data.message || 'Failed to send. Please try again.'); }
+        } catch { await kasAlert('Network error. Please check your connection.'); }
         finally { setLoading(false); }
     };
 
