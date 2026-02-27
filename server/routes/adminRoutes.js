@@ -185,7 +185,7 @@ router.post('/announce', authMiddleware, adminOnly, async (req, res) => {
     try {
         const users = await User.find({ role: { $ne: 'Admin' } }).select('_id');
         await Promise.all(users.map(u =>
-            createNotification({ recipient: u._id, type: 'General', message: `ðŸ“¢ Admin: ${message}`, link: '/' })
+            createNotification({ recipient: u._id, type: 'System', message: `ðŸ“¢ Admin: ${message}`, link: '/' })
         ));
         res.json({ success: true, message: `Announcement sent to ${users.length} users.` });
     } catch (err) {
