@@ -159,6 +159,11 @@ export default function AdminDashboard() {
     const [announcement, setAnnouncement] = useState('');
     const [announceSending, setAnnounceSending] = useState(false);
 
+    // Feedback state
+    const [feedbacks, setFeedbacks] = useState([]);
+    const [feedbackLoading, setFeedbackLoading] = useState(false);
+    const [unreadFeedbackCount, setUnreadFeedbackCount] = useState(0);
+
     const headers = { 'x-auth-token': token, 'Content-Type': 'application/json' };
 
     useEffect(() => { if (user && user.role !== 'Admin') navigate('/'); }, [user, navigate]);
@@ -647,6 +652,7 @@ export default function AdminDashboard() {
 
                 {/* ══ ANNOUNCE TAB ═════════════════════════════════════ */}
                 {activeTab === 'announce' && (
+        if (activeTab === 'feedback') fetchFeedbacks();
                     <div style={{ maxWidth: '640px' }}>
                         <h2 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 800, color: '#1F2937' }}>📢 Send Announcement</h2>
                         <p style={{ margin: '0 0 24px', color: C.gray, fontSize: '14px' }}>Send a notification to ALL registered users on the platform.</p>

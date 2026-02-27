@@ -43,9 +43,24 @@ export default function Footer() {
         }
     }
 
-    function handleFeedback(e) {
+    async function handleFeedback(e) {
         e.preventDefault();
-        if (feedback.trim()) { setFbSent(true); setFeedback(""); }
+        if (!feedback.trim()) return;
+        try {
+            await fetch('http://localhost:5000/api/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: 'Anonymous',
+                    email: 'anonymous@kas.app',
+                    subject: 'Quick Feedback',
+                    message: feedback.trim(),
+                    source: 'quick_feedback'
+                })
+            });
+        } catch {} // non-critical — swallow errors
+        setFbSent(true);
+        setFeedback("");
     }
 
     return (

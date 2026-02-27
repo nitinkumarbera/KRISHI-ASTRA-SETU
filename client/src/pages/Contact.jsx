@@ -20,7 +20,22 @@ export default function Contact() {
     const [submitted, setSubmitted] = useState(false);
     const [form, setForm] = useState({ name: "", email: "", subject: SUBJECTS[0], message: "" });
     const handleChange = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
-    const handleSubmit = e => { e.preventDefault(); setSubmitted(true); };
+    const [loading, setLoading] = useState(false);
+    const handleSubmit = async e => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const res = await fetch('http://localhost:5000/api/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...form, source: 'contact_form' })
+            });
+            const data = await res.json();
+            if (res.ok) { setSubmitted(true); }
+            else { alert(data.message || 'Failed to send. Please try again.'); }
+        } catch { alert('Network error. Please check your connection.'); }
+        finally { setLoading(false); }
+    };
 
     return (
         <div style={{ background: "#F5F5F5", minHeight: "100vh", paddingBottom: "80px" }}>
@@ -116,11 +131,11 @@ export default function Contact() {
                                     onBlur={e => e.target.style.borderColor = "#E5E7EB"}
                                 />
                             </div>
-                            <button type="submit" style={{ width: "100%", background: "#2E7D32", color: "#fff", fontWeight: 700, fontSize: "14px", padding: "14px", borderRadius: "12px", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "background 0.2s" }}
+                            <button type="submit" disabled={loading} style={{ width: "100%", background: "#2E7D32", color: "#fff", fontWeight: 700, fontSize: "14px", padding: "14px", borderRadius: "12px", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "background 0.2s" }}
                                 onMouseEnter={e => e.currentTarget.style.background = "#388E3C"}
                                 onMouseLeave={e => e.currentTarget.style.background = "#2E7D32"}
                             >
-                                <Send size={18} /> Submit Feedback
+                                {loading ? 'Sending…' : <><Send size={18} /> Submit Feedback</>}
                             </button>
                         </form>
                     )}
