@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
+import SplashScreen from './components/SplashScreen'
 
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
@@ -24,42 +26,47 @@ import ForgotPassword from './pages/ForgotPassword'
 import CheckoutStepper from './pages/CheckoutStepper'
 
 function App() {
+  const [splashDone, setSplashDone] = useState(false);
+
   return (
-    <AuthProvider>
-      <LanguageProvider>
-        <Router>
-          <KasDialogProvider />
-          <div style={{ minHeight: "100vh", background: "#F5F5F5" }}>
-            <Navbar />
-            <Routes>
-              {/* ── Public Routes ─────────────────────────── */}
-              <Route path="/" element={<Home />} />
-              <Route path="/about" element={<AboutUs />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/refunds" element={<RefundPolicy />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
+    <>
+      {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
+      <AuthProvider>
+        <LanguageProvider>
+          <Router>
+            <KasDialogProvider />
+            <div style={{ minHeight: "100vh", background: "#F5F5F5" }}>
+              <Navbar />
+              <Routes>
+                {/* ── Public Routes ─────────────────────────── */}
+                <Route path="/" element={<Home />} />
+                <Route path="/about" element={<AboutUs />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/refunds" element={<RefundPolicy />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
 
-              {/* ── Protected Routes (Login Required) ─────── */}
-              <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
-              <Route path="/booking/:id" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
-              <Route path="/booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/add-equipment" element={<ProtectedRoute><AddEquipment /></ProtectedRoute>} />
-              <Route path="/checkout/:bookingId" element={<ProtectedRoute><CheckoutStepper /></ProtectedRoute>} />
-              <Route path="/admin-dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+                {/* ── Protected Routes (Login Required) ─────── */}
+                <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
+                <Route path="/booking/:id" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
+                <Route path="/booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/add-equipment" element={<ProtectedRoute><AddEquipment /></ProtectedRoute>} />
+                <Route path="/checkout/:bookingId" element={<ProtectedRoute><CheckoutStepper /></ProtectedRoute>} />
+                <Route path="/admin-dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
 
-              {/* ── 404 — redirect unknown routes to home ── */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            <Footer />
-          </div>
-        </Router>
-      </LanguageProvider>
-    </AuthProvider>
+                {/* ── 404 — redirect unknown routes to home ── */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+              <Footer />
+            </div>
+          </Router>
+        </LanguageProvider>
+      </AuthProvider>
+    </>
   )
 }
 
