@@ -1,18 +1,30 @@
+import { useState, useEffect } from "react";
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import EquipmentCard from "./EquipmentCard";
 
-const MOCK_EQUIPMENT = [
-    { id: 1, name: "Mahindra 575 DI Tractor", category: "Tractor", location: "📍 3 km away · Pune, MH", priceHr: 500, rating: 4.8, reviews: 42, verified: true },
-    { id: 2, name: "Kartar 4000 Harvester", category: "Harvester", location: "📍 7 km away · Nashik, MH", priceHr: 1200, rating: 4.5, reviews: 29, verified: true },
-    { id: 3, name: "Aspee HTP Knapsack Sprayer", category: "Sprayer", location: "📍 2 km away · Aurangabad, MH", priceHr: 150, rating: 4.3, reviews: 17, verified: false },
-    { id: 4, name: "Sonalika Rotavator 7ft", category: "Rotavator", location: "📍 11 km away · Satara, MH", priceHr: 350, rating: 4.6, reviews: 35, verified: true },
-];
+const API = 'http://localhost:5000';
 
 export default function FeaturedGrid() {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const [equipment, setEquipment] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetch(`${API}/api/equipment/all`)
+            .then(r => r.json())
+            .then(data => {
+                if (data?.success && Array.isArray(data.data)) {
+                    // Show only available equipment, max 8 on homepage
+                    const available = data.data.filter(e => e.isAvailable).slice(0, 8);
+                    setEquipment(available);
+                }
+            })
+            .catch(() => { })
+            .finally(() => setLoading(false));
+    }, []);
 
     function goAuth(dest) {
         if (user) navigate(dest);
@@ -41,24 +53,73 @@ export default function FeaturedGrid() {
                 </button>
             </div>
 
-            {/* Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "20px" }}>
-                {MOCK_EQUIPMENT.map(item => (
-                    <EquipmentCard key={item.id} {...item} />
-                ))}
-            </div>
+            {/* Loading skeleton */}
+            {loading && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "20px" }}>
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} style={{ borderRadius: "16px", overflow: "hidden", boxShadow: "0 2px 10px rgba(0,0,0,0.07)", background: "#fff" }}>
+                            <div style={{ height: "188px", background: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)", animation: "pulse 1.5s infinite" }} />
+                            <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                                <div style={{ height: "16px", borderRadius: "8px", background: "#f0f0f0", width: "70%" }} />
+                                <div style={{ height: "12px", borderRadius: "8px", background: "#f0f0f0", width: "50%" }} />
+                                <div style={{ height: "12px", borderRadius: "8px", background: "#f0f0f0", width: "60%" }} />
+                                <div style={{ height: "40px", borderRadius: "10px", background: "#e8f5e9" }} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Real equipment grid */}
+            {!loading && equipment.length > 0 && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "20px" }}>
+                    {equipment.map(item => (
+                        <EquipmentCard
+                            key={item._id}
+                            id={item._id}
+                            images={item.images || []}
+                            name={item.name}
+                            category={item.category}
+                            location={item.location
+                                ? `📍 ${item.location.village || item.location.district || 'Nearby'}, ${item.location.state || 'MH'}`
+                                : '📍 Nearby'}
+                            priceHr={item.priceHr}
+                            rating={item.averageRating || 4.5}
+                            reviews={item.reviewCount || 0}
+                            verified={item.owner?.kycStatus === 'Verified'}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Empty state */}
+            {!loading && equipment.length === 0 && (
+                <div style={{ textAlign: "center", padding: "48px 20px", color: "#6B7280" }}>
+                    <div style={{ fontSize: "48px", marginBottom: "12px" }}>🚜</div>
+                    <p style={{ fontWeight: 700, fontSize: "16px", color: "#374151" }}>No equipment listed yet</p>
+                    <p style={{ fontSize: "14px", marginTop: "6px" }}>Be the first to list your farm equipment!</p>
+                    <button
+                        onClick={() => goAuth('/add-equipment')}
+                        style={{ marginTop: "20px", background: "#2E7D32", color: "#fff", border: "none", padding: "12px 28px", borderRadius: "12px", fontWeight: 700, fontSize: "14px", cursor: "pointer" }}
+                    >
+                        + List Your Equipment
+                    </button>
+                </div>
+            )}
 
             {/* Load more button */}
-            <div style={{ display: "flex", justifyContent: "center", marginTop: "32px" }}>
-                <button
-                    onClick={() => goAuth('/marketplace')}
-                    style={{ display: "flex", alignItems: "center", gap: "8px", border: "2px solid #2E7D32", color: "#2E7D32", fontWeight: 600, fontSize: "14px", padding: "11px 32px", borderRadius: "12px", background: "transparent", cursor: "pointer", transition: "all 0.2s ease" }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "#2E7D32"; e.currentTarget.style.color = "#fff"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#2E7D32"; }}
-                >
-                    Load More Equipment <ArrowRight size={15} strokeWidth={2.5} />
-                </button>
-            </div>
+            {!loading && equipment.length > 0 && (
+                <div style={{ display: "flex", justifyContent: "center", marginTop: "32px" }}>
+                    <button
+                        onClick={() => goAuth('/marketplace')}
+                        style={{ display: "flex", alignItems: "center", gap: "8px", border: "2px solid #2E7D32", color: "#2E7D32", fontWeight: 600, fontSize: "14px", padding: "11px 32px", borderRadius: "12px", background: "transparent", cursor: "pointer", transition: "all 0.2s ease" }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "#2E7D32"; e.currentTarget.style.color = "#fff"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#2E7D32"; }}
+                    >
+                        View All Equipment <ArrowRight size={15} strokeWidth={2.5} />
+                    </button>
+                </div>
+            )}
         </section>
     );
 }
