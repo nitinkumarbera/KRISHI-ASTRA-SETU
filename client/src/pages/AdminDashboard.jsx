@@ -148,71 +148,11 @@ function StatCard({ label, count, color, icon, sub }) {
                         )}
                     </div>
                 )}
-
-                {/* ── FEEDBACK TAB ── */}
-                {activeTab === 'feedback' && (
-                    <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#111827', margin: 0 }}>
-                                💬 User Feedback & Complaints
-                                {unreadFeedbackCount > 0 && (
-                                    <span style={{ marginLeft: '10px', background: '#EF4444', color: '#fff', fontSize: '12px', fontWeight: 700, padding: '2px 10px', borderRadius: '99px' }}>
-                                        {unreadFeedbackCount} unread
-                                    </span>
-                                )}
-                            </h2>
-                            <button onClick={fetchFeedbacks} style={{ background: C.paleGreen, color: C.green, border: 'none', padding: '8px 16px', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
-                                🔄 Refresh
-                            </button>
-                        </div>
-                        {feedbackLoading ? (
-                            <div style={{ textAlign: 'center', padding: '40px', color: C.gray }}>Loading feedback…</div>
-                        ) : feedbacks.length === 0 ? (
-                            <div style={{ background: '#fff', borderRadius: '16px', padding: '48px', textAlign: 'center', color: C.gray }}>
-                                <p style={{ fontSize: '40px', marginBottom: '12px' }}>💬</p>
-                                <p style={{ fontWeight: 700, fontSize: '16px' }}>No feedback received yet</p>
-                                <p style={{ fontSize: '13px' }}>Feedback from the Contact page and Quick Feedback bar will appear here.</p>
-                            </div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {feedbacks.map(fb => (
-                                    <div key={fb._id} style={{
-                                        background: '#fff', borderRadius: '14px', padding: '18px 20px',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                                        borderLeft: fb.isRead ? '4px solid #E5E7EB' : '4px solid #2E7D32',
-                                        opacity: fb.isRead ? 0.75 : 1
-                                    }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
-                                                    <span style={{ fontWeight: 800, fontSize: '14px', color: '#111827' }}>{fb.name}</span>
-                                                    <span style={{ fontSize: '12px', color: C.gray }}>{fb.email}</span>
-                                                    <span style={{ background: fb.source === 'quick_feedback' ? '#EDE9FE' : '#DBEAFE', color: fb.source === 'quick_feedback' ? '#6D28D9' : '#1D4ED8', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px' }}>
-                                                        {fb.source === 'quick_feedback' ? '⚡ Quick' : '📧 Contact Form'}
-                                                    </span>
-                                                    {!fb.isRead && <span style={{ background: '#DCFCE7', color: '#15803D', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px' }}>● New</span>}
-                                                </div>
-                                                <p style={{ fontSize: '12px', fontWeight: 700, color: C.gray, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{fb.subject}</p>
-                                                <p style={{ fontSize: '13px', color: '#374151', margin: 0, lineHeight: 1.6 }}>{fb.message}</p>
-                                                <p style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '8px' }}>{new Date(fb.createdAt).toLocaleString('en-IN')}</p>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                                                {!fb.isRead && (
-                                                    <button onClick={async () => { await fetch(`${API}/api/feedback/${fb._id}/read`, { method: 'PATCH', headers }); fetchFeedbacks(); }} style={{ background: C.paleGreen, color: C.green, border: 'none', padding: '6px 12px', borderRadius: '8px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>✓ Mark Read</button>
-                                                )}
-                                                <button onClick={async () => { const ok = await kasPrompt('Delete this feedback? (Type YES)'); if (ok?.trim().toLowerCase() !== 'yes') return; await fetch(`${API}/api/feedback/${fb._id}`, { method: 'DELETE', headers }); fetchFeedbacks(); }} style={{ background: '#FEF2F2', color: '#DC2626', border: 'none', padding: '6px 12px', borderRadius: '8px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>🗑 Delete</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
             </div>
         </div>
     );
 }
+
 
 function EmptyState({ icon, msg }) {
     return (
@@ -463,7 +403,6 @@ export default function AdminDashboard() {
         { id: 'announce', icon: <Megaphone size={16} />, label: 'Announce' },
         { id: 'analytics', icon: <BarChart3 size={16} />, label: 'Analytics' },
         { id: 'feedback', icon: <Send size={16} />, label: 'Feedback' },
-        { id: 'feedback', icon: <Send size={16} />, label: 'Feedback' }
     ];
 
     return (
@@ -831,6 +770,67 @@ export default function AdminDashboard() {
                                 .finally(() => setAnalyticsLoading(false));
                         }}
                     />
+                )}
+
+                {/* ── FEEDBACK TAB ── */}
+                {activeTab === 'feedback' && (
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#111827', margin: 0 }}>
+                                💬 User Feedback & Complaints
+                                {unreadFeedbackCount > 0 && (
+                                    <span style={{ marginLeft: '10px', background: '#EF4444', color: '#fff', fontSize: '12px', fontWeight: 700, padding: '2px 10px', borderRadius: '99px' }}>
+                                        {unreadFeedbackCount} unread
+                                    </span>
+                                )}
+                            </h2>
+                            <button onClick={fetchFeedbacks} style={{ background: C.paleGreen, color: C.green, border: 'none', padding: '8px 16px', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
+                                🔄 Refresh
+                            </button>
+                        </div>
+                        {feedbackLoading ? (
+                            <div style={{ textAlign: 'center', padding: '40px', color: C.gray }}>Loading feedback…</div>
+                        ) : feedbacks.length === 0 ? (
+                            <div style={{ background: '#fff', borderRadius: '16px', padding: '48px', textAlign: 'center', color: C.gray }}>
+                                <p style={{ fontSize: '40px', marginBottom: '12px' }}>💬</p>
+                                <p style={{ fontWeight: 700, fontSize: '16px' }}>No feedback received yet</p>
+                                <p style={{ fontSize: '13px' }}>Feedback from the Contact page and Quick Feedback bar will appear here.</p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {feedbacks.map(fb => (
+                                    <div key={fb._id} style={{
+                                        background: '#fff', borderRadius: '14px', padding: '18px 20px',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                                        borderLeft: fb.isRead ? '4px solid #E5E7EB' : '4px solid #2E7D32',
+                                        opacity: fb.isRead ? 0.75 : 1
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                                                    <span style={{ fontWeight: 800, fontSize: '14px', color: '#111827' }}>{fb.name}</span>
+                                                    <span style={{ fontSize: '12px', color: C.gray }}>{fb.email}</span>
+                                                    <span style={{ background: fb.source === 'quick_feedback' ? '#EDE9FE' : '#DBEAFE', color: fb.source === 'quick_feedback' ? '#6D28D9' : '#1D4ED8', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px' }}>
+                                                        {fb.source === 'quick_feedback' ? '⚡ Quick' : '📧 Contact Form'}
+                                                    </span>
+                                                    {!fb.isRead && <span style={{ background: '#DCFCE7', color: '#15803D', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px' }}>● New</span>}
+                                                </div>
+                                                <p style={{ fontSize: '12px', fontWeight: 700, color: C.gray, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{fb.subject}</p>
+                                                <p style={{ fontSize: '13px', color: '#374151', margin: 0, lineHeight: 1.6 }}>{fb.message}</p>
+                                                <p style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '8px' }}>{new Date(fb.createdAt).toLocaleString('en-IN')}</p>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                                                {!fb.isRead && (
+                                                    <button onClick={async () => { await fetch(`${API}/api/feedback/${fb._id}/read`, { method: 'PATCH', headers }); fetchFeedbacks(); }} style={{ background: C.paleGreen, color: C.green, border: 'none', padding: '6px 12px', borderRadius: '8px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>✓ Mark Read</button>
+                                                )}
+                                                <button onClick={async () => { const ok = await kasPrompt('Delete this feedback? (Type YES)'); if (ok?.trim().toLowerCase() !== 'yes') return; await fetch(`${API}/api/feedback/${fb._id}`, { method: 'DELETE', headers }); fetchFeedbacks(); }} style={{ background: '#FEF2F2', color: '#DC2626', border: 'none', padding: '6px 12px', borderRadius: '8px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>🗑 Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
 
