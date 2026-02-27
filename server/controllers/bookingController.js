@@ -174,6 +174,13 @@ exports.completeBooking = async (req, res) => {
         if (String(booking.owner) !== String(req.user.id))
             return res.status(403).json({ success: false, message: 'Not authorised.' });
 
+        if (!booking.returnConfirmedByRenter) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot complete — the renter has not confirmed equipment return yet. Please wait for the renter to click "I\'ve Returned the Equipment" first.'
+            });
+        }
+
         booking.status = 'Completed';
         booking.paymentStatus = 'Paid';
         await booking.save();

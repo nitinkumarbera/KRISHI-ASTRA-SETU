@@ -2063,23 +2063,35 @@ export default function Profile() {
                                                     <DamageReportForm bookingId={r._id} authToken={authToken} onReported={fetchDashboardData} />
                                                 )}
 
-                                                {/* ── Mark as Complete ── */}
-                                                <button
-                                                    onClick={async () => {
-                                                        const confirmMsg = r.damageReport?.filed
-                                                            ? 'Complete this rental with an active damage report?'
-                                                            : 'Mark this rental as Completed? The equipment will become available again.';
-                                                        const ok = await kasPrompt(`${confirmMsg} (Type YES to confirm)`);
-                                                        if (!ok || ok.trim().toLowerCase() !== 'yes') return;
-                                                        fetch(`http://localhost:5000/api/bookings/${r._id}/complete`, {
-                                                            method: 'PATCH',
-                                                            headers: { 'x-auth-token': authToken }
-                                                        }).then(async res => res.ok ? fetchDashboardData() : await kasAlert('Failed to complete booking.'));
-                                                    }}
-                                                    style={{ background: r.damageReport?.filed ? '#B91C1C' : '#2E7D32', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 800, cursor: 'pointer', width: '100%', marginTop: '4px' }}
-                                                >
-                                                    {r.damageReport?.filed ? '⚠️ Complete with Damage Report' : '✅ Mark as Complete'}
-                                                </button>
+                                                {/* ── Mark as Complete (gated on renter return confirmation) ── */}
+                                                {r.returnConfirmedByRenter ? (
+                                                    <button
+                                                        onClick={async () => {
+                                                            const confirmMsg = r.damageReport?.filed
+                                                                ? 'Complete this rental with an active damage report?'
+                                                                : 'Mark this rental as Completed? The equipment will become available again.';
+                                                            const ok = await kasPrompt(`${confirmMsg} (Type YES to confirm)`);
+                                                            if (!ok || ok.trim().toLowerCase() !== 'yes') return;
+                                                            const res = await fetch(`http://localhost:5000/api/bookings/${r._id}/complete`, {
+                                                                method: 'PATCH',
+                                                                headers: { 'x-auth-token': authToken }
+                                                            });
+                                                            const data = await res.json();
+                                                            if (res.ok) { fetchDashboardData(); }
+                                                            else { await kasAlert(data.message || 'Failed to complete booking.'); }
+                                                        }}
+                                                        style={{ background: r.damageReport?.filed ? '#B91C1C' : '#2E7D32', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 800, cursor: 'pointer', width: '100%', marginTop: '4px' }}
+                                                    >
+                                                        {r.damageReport?.filed ? '⚠️ Complete with Damage Report' : '✅ Mark as Complete & Return Tool'}
+                                                    </button>
+                                                ) : (
+                                                    <div style={{ background: '#FEF9C3', border: '1.5px solid #FCD34D', borderRadius: '10px', padding: '12px 16px', marginTop: '4px', textAlign: 'center' }}>
+                                                        <p style={{ fontSize: '13px', fontWeight: 800, color: '#92400E', margin: '0 0 4px' }}>⏳ Waiting for Renter</p>
+                                                        <p style={{ fontSize: '12px', color: '#78350F', margin: 0 }}>
+                                                            The renter must click <strong>"I've Returned the Equipment"</strong> before you can mark this as complete.
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : r.status === 'Completed' ? (
                                             <div style={{ background: '#F9FAFB', borderRadius: '12px', padding: '12px' }}>
