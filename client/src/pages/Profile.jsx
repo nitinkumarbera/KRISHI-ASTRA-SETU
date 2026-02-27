@@ -656,9 +656,38 @@ function GeoPhotoUploader({ bookingId, existingPhotos, authToken, onUploaded }) 
 
 
 // ── 🔐 SecuritySection ───────────────────────────────────────
-function SecuritySection({ user, authToken, refreshUser }) {
+function SecuritySection({ user, authToken, refreshUser, onAccountDeleted }) {
     const [secEmail, setSecEmail] = useState({ open: false, newEmail: '', password: '', loading: false, success: '', error: '' });
     const [secPass, setSecPass] = useState({ open: false, currentPassword: '', newPassword: '', confirmPassword: '', showCurrent: false, showNew: false, showConfirm: false, loading: false, success: '', error: '' });
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteAccPassword, setDeleteAccPassword] = useState('');
+    const [deleteAccMsg, setDeleteAccMsg] = useState('');
+    const [deleteAccLoading, setDeleteAccLoading] = useState(false);
+
+    // ── Delete Account Handler ──────────────────────────────────
+    async function handleDeleteAccount() {
+        if (!deleteAccPassword.trim()) { setDeleteAccMsg('⚠️ Please enter your password.'); return; }
+        setDeleteAccLoading(true);
+        try {
+            const res = await fetch('http://localhost:5000/api/user/account', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
+                body: JSON.stringify({ password: deleteAccPassword })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setDeleteAccMsg('✅ Account deleted. Redirecting...');
+                setTimeout(() => { onAccountDeleted?.(); }, 1500);
+            } else {
+                setDeleteAccMsg('⚠️ ' + (data.message || 'Failed to delete account.'));
+            }
+        } catch {
+            setDeleteAccMsg('⚠️ Network error. Please try again.');
+        } finally {
+            setDeleteAccLoading(false);
+        }
+    }
+
 
     const handleEmailChange = async () => {
         setSecEmail(s => ({ ...s, loading: true, error: '', success: '' }));
@@ -717,171 +746,173 @@ function SecuritySection({ user, authToken, refreshUser }) {
     const btnStyle = (loading) => ({ display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 24px', borderRadius: '10px', border: 'none', background: loading ? '#9CA3AF' : '#2E7D32', color: '#fff', fontWeight: 800, fontSize: '14px', cursor: loading ? 'not-allowed' : 'pointer' });
 
     return (
-        <div style={{ marginBottom: '32px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#111827', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <ShieldCheck size={18} color="#2E7D32" /> Security & Login
-            </h3>
+        <>
+            <div style={{ marginBottom: '32px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#111827', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ShieldCheck size={18} color="#2E7D32" /> Security & Login
+                </h3>
 
-            {/* ── Change Email ── */}
-            <div style={cardStyle}>
-                <div style={headerStyle(secEmail.open)} onClick={() => setSecEmail(s => ({ ...s, open: !s.open, error: '', success: '' }))}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: 800, color: '#111827' }}>
-                        <Mail size={17} color="#2E7D32" /> Change Email Address
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#9CA3AF', fontWeight: 600 }}>
-                        <span style={{ fontSize: '11px', background: '#F3F4F6', borderRadius: '6px', padding: '3px 8px', color: '#6B7280' }}>{user.email}</span>
-                        {secEmail.open ? '▲' : '▼'}
-                    </span>
-                </div>
-                {secEmail.open && (
-                    <div style={{ padding: '20px 22px', borderTop: '1px solid #F3F4F6' }}>
-                        {secEmail.success && <div style={msgStyle(true)}>✅ {secEmail.success}</div>}
-                        {secEmail.error && <div style={msgStyle(false)}>⚠️ {secEmail.error}</div>}
-                        <div style={{ display: 'grid', gap: '14px' }}>
-                            <div>
-                                <label style={labelStyle}>New Email Address (@gmail.com)</label>
-                                <input type="email" value={secEmail.newEmail}
-                                    onChange={e => setSecEmail(s => ({ ...s, newEmail: e.target.value, error: '' }))}
-                                    placeholder="newaddress@gmail.com" style={inputStyle}
-                                    onFocus={focusGreen} onBlur={blurGray} />
-                            </div>
-                            <div>
-                                <label style={labelStyle}>Current Password (to verify it's you)</label>
-                                <div style={{ position: 'relative' }}>
-                                    <input type="password" value={secEmail.password}
-                                        onChange={e => setSecEmail(s => ({ ...s, password: e.target.value, error: '' }))}
-                                        placeholder="Enter your current password" style={pwInputStyle}
+                {/* ── Change Email ── */}
+                <div style={cardStyle}>
+                    <div style={headerStyle(secEmail.open)} onClick={() => setSecEmail(s => ({ ...s, open: !s.open, error: '', success: '' }))}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: 800, color: '#111827' }}>
+                            <Mail size={17} color="#2E7D32" /> Change Email Address
+                        </span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#9CA3AF', fontWeight: 600 }}>
+                            <span style={{ fontSize: '11px', background: '#F3F4F6', borderRadius: '6px', padding: '3px 8px', color: '#6B7280' }}>{user.email}</span>
+                            {secEmail.open ? '▲' : '▼'}
+                        </span>
+                    </div>
+                    {secEmail.open && (
+                        <div style={{ padding: '20px 22px', borderTop: '1px solid #F3F4F6' }}>
+                            {secEmail.success && <div style={msgStyle(true)}>✅ {secEmail.success}</div>}
+                            {secEmail.error && <div style={msgStyle(false)}>⚠️ {secEmail.error}</div>}
+                            <div style={{ display: 'grid', gap: '14px' }}>
+                                <div>
+                                    <label style={labelStyle}>New Email Address (@gmail.com)</label>
+                                    <input type="email" value={secEmail.newEmail}
+                                        onChange={e => setSecEmail(s => ({ ...s, newEmail: e.target.value, error: '' }))}
+                                        placeholder="newaddress@gmail.com" style={inputStyle}
                                         onFocus={focusGreen} onBlur={blurGray} />
                                 </div>
+                                <div>
+                                    <label style={labelStyle}>Current Password (to verify it's you)</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input type="password" value={secEmail.password}
+                                            onChange={e => setSecEmail(s => ({ ...s, password: e.target.value, error: '' }))}
+                                            placeholder="Enter your current password" style={pwInputStyle}
+                                            onFocus={focusGreen} onBlur={blurGray} />
+                                    </div>
+                                </div>
+                            </div>
+                            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                                <button onClick={handleEmailChange} disabled={secEmail.loading} style={btnStyle(secEmail.loading)}>
+                                    {secEmail.loading ? <><RefreshCw size={15} className="animate-spin" /> Saving…</> : '📧 Update Email'}
+                                </button>
                             </div>
                         </div>
-                        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                            <button onClick={handleEmailChange} disabled={secEmail.loading} style={btnStyle(secEmail.loading)}>
-                                {secEmail.loading ? <><RefreshCw size={15} className="animate-spin" /> Saving…</> : '📧 Update Email'}
-                            </button>
-                        </div>
+                    )}
+                </div>
+
+                {/* ── Change Password ── */}
+                <div style={cardStyle}>
+                    <div style={headerStyle(secPass.open)} onClick={() => setSecPass(s => ({ ...s, open: !s.open, error: '', success: '' }))}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: 800, color: '#111827' }}>
+                            <Lock size={17} color="#2E7D32" /> Change Password
+                        </span>
+                        <span style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 600 }}>{secPass.open ? '▲' : '▼'}</span>
                     </div>
-                )}
+                    {secPass.open && (
+                        <div style={{ padding: '20px 22px', borderTop: '1px solid #F3F4F6' }}>
+                            {secPass.success && <div style={msgStyle(true)}>✅ {secPass.success}</div>}
+                            {secPass.error && <div style={msgStyle(false)}>⚠️ {secPass.error}</div>}
+                            <div style={{ display: 'grid', gap: '14px' }}>
+                                {/* Current password */}
+                                <div>
+                                    <label style={labelStyle}>Current Password</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input type={secPass.showCurrent ? 'text' : 'password'}
+                                            value={secPass.currentPassword}
+                                            onChange={e => setSecPass(s => ({ ...s, currentPassword: e.target.value, error: '' }))}
+                                            placeholder="Enter current password" style={pwInputStyle}
+                                            onFocus={focusGreen} onBlur={blurGray} />
+                                        <button type="button" onClick={() => setSecPass(s => ({ ...s, showCurrent: !s.showCurrent }))}
+                                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', display: 'flex' }}>
+                                            {secPass.showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                </div>
+                                {/* New password */}
+                                <div>
+                                    <label style={labelStyle}>New Password</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input type={secPass.showNew ? 'text' : 'password'}
+                                            value={secPass.newPassword}
+                                            onChange={e => setSecPass(s => ({ ...s, newPassword: e.target.value, error: '' }))}
+                                            placeholder="Min. 6 characters" style={pwInputStyle}
+                                            onFocus={focusGreen} onBlur={blurGray} />
+                                        <button type="button" onClick={() => setSecPass(s => ({ ...s, showNew: !s.showNew }))}
+                                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', display: 'flex' }}>
+                                            {secPass.showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                </div>
+                                {/* Confirm new password */}
+                                <div>
+                                    <label style={labelStyle}>Confirm New Password</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input type={secPass.showConfirm ? 'text' : 'password'}
+                                            value={secPass.confirmPassword}
+                                            onChange={e => setSecPass(s => ({ ...s, confirmPassword: e.target.value, error: '' }))}
+                                            placeholder="Re-enter new password" style={pwInputStyle}
+                                            onFocus={focusGreen} onBlur={blurGray} />
+                                        <button type="button" onClick={() => setSecPass(s => ({ ...s, showConfirm: !s.showConfirm }))}
+                                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', display: 'flex' }}>
+                                            {secPass.showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                                <button onClick={handlePasswordChange} disabled={secPass.loading} style={btnStyle(secPass.loading)}>
+                                    {secPass.loading ? <><RefreshCw size={15} className="animate-spin" /> Saving…</> : '🔒 Update Password'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            {/* ── Change Password ── */}
-            <div style={cardStyle}>
-                <div style={headerStyle(secPass.open)} onClick={() => setSecPass(s => ({ ...s, open: !s.open, error: '', success: '' }))}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: 800, color: '#111827' }}>
-                        <Lock size={17} color="#2E7D32" /> Change Password
-                    </span>
-                    <span style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 600 }}>{secPass.open ? '▲' : '▼'}</span>
+            {/* ── Delete Account ── */}
+            <div style={{ marginTop: '20px', border: '2px solid #FEE2E2', borderRadius: '14px', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 22px', background: '#FEF2F2', borderBottom: '1px solid #FEE2E2' }}>
+                    <span style={{ fontSize: '18px' }}>🗑️</span>
+                    <span style={{ fontSize: '15px', fontWeight: 800, color: '#B91C1C', flex: 1 }}>Danger Zone — Delete My Account</span>
                 </div>
-                {secPass.open && (
-                    <div style={{ padding: '20px 22px', borderTop: '1px solid #F3F4F6' }}>
-                        {secPass.success && <div style={msgStyle(true)}>✅ {secPass.success}</div>}
-                        {secPass.error && <div style={msgStyle(false)}>⚠️ {secPass.error}</div>}
-                        <div style={{ display: 'grid', gap: '14px' }}>
-                            {/* Current password */}
-                            <div>
-                                <label style={labelStyle}>Current Password</label>
-                                <div style={{ position: 'relative' }}>
-                                    <input type={secPass.showCurrent ? 'text' : 'password'}
-                                        value={secPass.currentPassword}
-                                        onChange={e => setSecPass(s => ({ ...s, currentPassword: e.target.value, error: '' }))}
-                                        placeholder="Enter current password" style={pwInputStyle}
-                                        onFocus={focusGreen} onBlur={blurGray} />
-                                    <button type="button" onClick={() => setSecPass(s => ({ ...s, showCurrent: !s.showCurrent }))}
-                                        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', display: 'flex' }}>
-                                        {secPass.showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
-                                </div>
-                            </div>
-                            {/* New password */}
-                            <div>
-                                <label style={labelStyle}>New Password</label>
-                                <div style={{ position: 'relative' }}>
-                                    <input type={secPass.showNew ? 'text' : 'password'}
-                                        value={secPass.newPassword}
-                                        onChange={e => setSecPass(s => ({ ...s, newPassword: e.target.value, error: '' }))}
-                                        placeholder="Min. 6 characters" style={pwInputStyle}
-                                        onFocus={focusGreen} onBlur={blurGray} />
-                                    <button type="button" onClick={() => setSecPass(s => ({ ...s, showNew: !s.showNew }))}
-                                        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', display: 'flex' }}>
-                                        {secPass.showNew ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
-                                </div>
-                            </div>
-                            {/* Confirm new password */}
-                            <div>
-                                <label style={labelStyle}>Confirm New Password</label>
-                                <div style={{ position: 'relative' }}>
-                                    <input type={secPass.showConfirm ? 'text' : 'password'}
-                                        value={secPass.confirmPassword}
-                                        onChange={e => setSecPass(s => ({ ...s, confirmPassword: e.target.value, error: '' }))}
-                                        placeholder="Re-enter new password" style={pwInputStyle}
-                                        onFocus={focusGreen} onBlur={blurGray} />
-                                    <button type="button" onClick={() => setSecPass(s => ({ ...s, showConfirm: !s.showConfirm }))}
-                                        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', display: 'flex' }}>
-                                        {secPass.showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                            <button onClick={handlePasswordChange} disabled={secPass.loading} style={btnStyle(secPass.loading)}>
-                                {secPass.loading ? <><RefreshCw size={15} className="animate-spin" /> Saving…</> : '🔒 Update Password'}
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-
-        {/* ── Delete Account ── */ }
-    <div style={{ marginTop: '20px', border: '2px solid #FEE2E2', borderRadius: '14px', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 22px', background: '#FEF2F2', borderBottom: '1px solid #FEE2E2' }}>
-            <span style={{ fontSize: '18px' }}>🗑️</span>
-            <span style={{ fontSize: '15px', fontWeight: 800, color: '#B91C1C', flex: 1 }}>Danger Zone — Delete My Account</span>
-        </div>
-        <div style={{ padding: '20px 22px' }}>
-            <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px', lineHeight: 1.7 }}>
-                ⚠️ Permanently deletes your account, all your equipment listings, bookings, and data from Krishi Astra Setu.
-                <strong style={{ color: '#B91C1C' }}> This action cannot be undone.</strong>
-            </p>
-            {!showDeleteModal ? (
-                <button
-                    onClick={() => setShowDeleteModal(true)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 22px', borderRadius: '10px', background: '#FEF2F2', border: '2px solid #EF4444', color: '#B91C1C', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = '#EF4444'; e.currentTarget.style.color = '#fff'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#B91C1C'; }}
-                >
-                    🗑️ Delete My Account
-                </button>
-            ) : (
-                <div style={{ background: '#FFF1F2', borderRadius: '12px', padding: '18px', border: '1.5px solid #FECDD3' }}>
-                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#B91C1C', marginBottom: '12px' }}>
-                        ⚠️ Confirm your password to permanently delete your account:
+                <div style={{ padding: '20px 22px' }}>
+                    <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px', lineHeight: 1.7 }}>
+                        ⚠️ Permanently deletes your account, all your equipment listings, bookings, and data from Krishi Astra Setu.
+                        <strong style={{ color: '#B91C1C' }}> This action cannot be undone.</strong>
                     </p>
-                    {deleteAccMsg && <div style={{ padding: '10px 14px', borderRadius: '8px', marginBottom: '12px', background: deleteAccMsg.includes('✅') ? '#F0FDF4' : '#FEF2F2', color: deleteAccMsg.includes('✅') ? '#15803D' : '#B91C1C', fontSize: '13px', fontWeight: 600 }}>{deleteAccMsg}</div>}
-                    <input
-                        type="password"
-                        value={deleteAccPassword}
-                        onChange={e => { setDeleteAccPassword(e.target.value); setDeleteAccMsg(''); }}
-                        placeholder="Enter your current password"
-                        style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', border: '2px solid #FECDD3', fontSize: '14px', outline: 'none', boxSizing: 'border-box', marginBottom: '14px', fontFamily: 'inherit' }}
-                        onFocus={e => e.target.style.borderColor = '#EF4444'}
-                        onBlur={e => e.target.style.borderColor = '#FECDD3'}
-                    />
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        <button onClick={() => { setShowDeleteModal(false); setDeleteAccPassword(''); setDeleteAccMsg(''); }}
-                            style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1.5px solid #D1D5DB', background: '#fff', color: '#374151', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
-                            Cancel
+                    {!showDeleteModal ? (
+                        <button
+                            onClick={() => setShowDeleteModal(true)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 22px', borderRadius: '10px', background: '#FEF2F2', border: '2px solid #EF4444', color: '#B91C1C', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#EF4444'; e.currentTarget.style.color = '#fff'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#B91C1C'; }}
+                        >
+                            🗑️ Delete My Account
                         </button>
-                        <button onClick={handleDeleteAccount} disabled={deleteAccLoading}
-                            style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: deleteAccLoading ? '#6B7280' : '#DC2626', color: '#fff', fontWeight: 700, cursor: deleteAccLoading ? 'not-allowed' : 'pointer', fontSize: '13px' }}>
-                            {deleteAccLoading ? 'Deleting...' : '🗑️ Yes, Delete My Account'}
-                        </button>
-                    </div>
+                    ) : (
+                        <div style={{ background: '#FFF1F2', borderRadius: '12px', padding: '18px', border: '1.5px solid #FECDD3' }}>
+                            <p style={{ fontSize: '14px', fontWeight: 700, color: '#B91C1C', marginBottom: '12px' }}>
+                                ⚠️ Confirm your password to permanently delete your account:
+                            </p>
+                            {deleteAccMsg && <div style={{ padding: '10px 14px', borderRadius: '8px', marginBottom: '12px', background: deleteAccMsg.includes('✅') ? '#F0FDF4' : '#FEF2F2', color: deleteAccMsg.includes('✅') ? '#15803D' : '#B91C1C', fontSize: '13px', fontWeight: 600 }}>{deleteAccMsg}</div>}
+                            <input
+                                type="password"
+                                value={deleteAccPassword}
+                                onChange={e => { setDeleteAccPassword(e.target.value); setDeleteAccMsg(''); }}
+                                placeholder="Enter your current password"
+                                style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', border: '2px solid #FECDD3', fontSize: '14px', outline: 'none', boxSizing: 'border-box', marginBottom: '14px', fontFamily: 'inherit' }}
+                                onFocus={e => e.target.style.borderColor = '#EF4444'}
+                                onBlur={e => e.target.style.borderColor = '#FECDD3'}
+                            />
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button onClick={() => { setShowDeleteModal(false); setDeleteAccPassword(''); setDeleteAccMsg(''); }}
+                                    style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1.5px solid #D1D5DB', background: '#fff', color: '#374151', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
+                                    Cancel
+                                </button>
+                                <button onClick={handleDeleteAccount} disabled={deleteAccLoading}
+                                    style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: deleteAccLoading ? '#6B7280' : '#DC2626', color: '#fff', fontWeight: 700, cursor: deleteAccLoading ? 'not-allowed' : 'pointer', fontSize: '13px' }}>
+                                    {deleteAccLoading ? 'Deleting...' : '🗑️ Yes, Delete My Account'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            )}
-        </div>
-    </div>
+            </div>
+        </>
     );
 }
 
@@ -934,11 +965,6 @@ export default function Profile() {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'rentals' | 'equipment'
     const [showAccount, setShowAccount] = useState(false);
-    // Delete account state
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [deleteAccPassword, setDeleteAccPassword] = useState('');
-    const [deleteAccMsg, setDeleteAccMsg] = useState('');
-    const [deleteAccLoading, setDeleteAccLoading] = useState(false);
 
     const [rentals, setRentals] = useState([]);
     const [myEquipment, setMyEquipment] = useState([]);
@@ -993,30 +1019,6 @@ export default function Profile() {
             refreshUser(); // Always sync full profile from server
         }
     }, [authToken]);
-
-    // ── Delete Account Handler ──────────────────────────────────
-    async function handleDeleteAccount() {
-        if (!deleteAccPassword.trim()) { setDeleteAccMsg('⚠️ Please enter your password.'); return; }
-        setDeleteAccLoading(true);
-        try {
-            const res = await fetch('http://localhost:5000/api/user/account', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
-                body: JSON.stringify({ password: deleteAccPassword })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                setDeleteAccMsg('✅ Account deleted. Redirecting...');
-                setTimeout(() => { logout?.(); navigate('/'); }, 1500);
-            } else {
-                setDeleteAccMsg('⚠️ ' + (data.message || 'Failed to delete account.'));
-            }
-        } catch {
-            setDeleteAccMsg('⚠️ Network error. Please try again.');
-        } finally {
-            setDeleteAccLoading(false);
-        }
-    }
 
     const fetchDashboardData = async () => {
         setLoading(true);
@@ -1594,7 +1596,9 @@ export default function Profile() {
 
                 {/* ── 🔐 Security & Login Section ─────────────── */}
                 {activeTab === 'profile' && (
-                    <SecuritySection user={user} authToken={authToken} refreshUser={refreshUser} />
+                    <SecuritySection user={user} authToken={authToken} refreshUser={refreshUser} 
+                    onAccountDeleted={() => { logout?.(); navigate('/'); }}
+                />
                 )}
 
 
