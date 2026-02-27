@@ -117,13 +117,6 @@ function UploadBox({ file, onChange, uploading, label }) {
     );
 }
 
-// UPI QR helper — generates a scannable QR URL from UPI pay deep link
-function upiQrUrl(upiId, name, amount) {
-    const upiDeepLink = encodeURIComponent(
-        `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name || 'Recipient')}&am=${amount || ''}&cu=INR`
-    );
-    return `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${upiDeepLink}`;
-}
 
 // Fullscreen QR Modal
 function QrFullscreen({ src, onClose }) {
@@ -156,8 +149,8 @@ function UpiCard({ name, upi, bank, acc, ifsc, amount, label, uploadedQrUrl }) {
     function copy() {
         navigator.clipboard.writeText(upi).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
     }
-    // Prefer the user's actual uploaded QR; fallback to API-generated one
-    const qrSrc = uploadedQrUrl || (upi && upi !== 'Contact lender for UPI' ? upiQrUrl(upi, name, amount) : null);
+    // Show ONLY the actual uploaded QR — never generate from UPI ID
+    const qrSrc = uploadedQrUrl || null;
     return (
         <>
             {fullscreen && qrSrc && <QrFullscreen src={qrSrc} onClose={() => setFullscreen(false)} />}
@@ -197,7 +190,17 @@ function UpiCard({ name, upi, bank, acc, ifsc, amount, label, uploadedQrUrl }) {
                             {/* Expand hint */}
                             {qrLoaded && <div style={{ position: 'absolute', bottom: '2px', right: '3px', fontSize: '9px', color: '#9CA3AF', fontWeight: 700 }}>🔍</div>}
                         </div>
-                    ) : null}
+                    ) : (
+                        <div style={{
+                            background: 'rgba(255,255,255,0.12)', borderRadius: '10px', padding: '10px',
+                            flexShrink: 0, width: '100px', height: '100px',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            border: '1.5px dashed rgba(255,255,255,0.3)'
+                        }}>
+                            <span style={{ fontSize: '24px' }}>📷</span>
+                            <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.6)', fontWeight: 700, textAlign: 'center', marginTop: '4px' }}>No QR uploaded by owner</span>
+                        </div>
+                    )}
 
                     {/* UPI details */}
                     <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: '10px', padding: '12px 14px', flex: 1, minWidth: 0 }}>
