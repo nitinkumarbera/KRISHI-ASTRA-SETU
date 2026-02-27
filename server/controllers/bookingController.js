@@ -100,7 +100,7 @@ exports.getMyBookings = async (req, res) => {
     try {
         const bookings = await Booking.find({ renter: req.user.id })
             .populate('equipment', 'name category images priceHr location brand')
-            .populate('owner', 'name mobile')
+            .populate('owner', 'name mobile email finance address kycStatus')
             .sort({ createdAt: -1 });
         res.json({ success: true, data: bookings });
     } catch (err) {

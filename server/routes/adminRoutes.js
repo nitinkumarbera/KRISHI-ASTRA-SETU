@@ -30,6 +30,23 @@ router.get('/stats', authMiddleware, adminOnly, async (req, res) => {
     }
 });
 
+// ── GET /api/admin/qr ─────────────────────────────────────────
+// Any authenticated user can fetch admin QR for payment screen
+router.get('/qr', authMiddleware, async (req, res) => {
+    try {
+        const admin = await User.findOne({ role: 'Admin' }).select('finance name');
+        if (!admin) return res.status(404).json({ success: false, message: 'Admin not found.' });
+        res.json({
+            success: true,
+            qrCodeUrl: admin.finance?.qrCodeUrl || null,
+            name: `${admin.name?.first || ''} ${admin.name?.last || ''}`.trim(),
+            upiId: admin.finance?.upiId || null
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Server error.' });
+    }
+});
+
 // â”€â”€ GET /api/admin/users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/users', authMiddleware, adminOnly, async (req, res) => {
     try {

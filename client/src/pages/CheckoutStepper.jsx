@@ -125,66 +125,101 @@ function upiQrUrl(upiId, name, amount) {
     return `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${upiDeepLink}`;
 }
 
-// UPI Card helper
-function UpiCard({ name, upi, bank, acc, ifsc, amount, label }) {
-    const [copied, setCopied] = useState(false);
-    const [qrLoaded, setQrLoaded] = useState(false);
-    const [qrError, setQrError] = useState(false);
-    function copy() {
-        navigator.clipboard.writeText(upi).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
-    }
-    const qrSrc = upi ? upiQrUrl(upi, name, amount) : null;
+// Fullscreen QR Modal
+function QrFullscreen({ src, onClose }) {
     return (
-        <div style={{ background: 'linear-gradient(135deg,#1B5E20,#2E7D32)', borderRadius: '16px', padding: '20px', color: '#fff', marginBottom: '16px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.65)', marginBottom: '6px' }}>{label}</div>
-            <div style={{ fontSize: '20px', fontWeight: 900, marginBottom: '4px' }}>{fmt(amount)}</div>
-            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', marginBottom: '14px' }}>{name}</div>
-
-            {/* QR + UPI details row */}
-            <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-                {/* QR Code */}
-                {qrSrc && !qrError ? (
-                    <div style={{
-                        background: '#fff', borderRadius: '10px', padding: '6px',
-                        flexShrink: 0, width: '100px', height: '100px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
-                    }}>
-                        <img
-                            src={qrSrc}
-                            alt={`QR for ${upi}`}
-                            width={88} height={88}
-                            onLoad={() => setQrLoaded(true)}
-                            onError={() => setQrError(true)}
-                            style={{ display: qrLoaded ? 'block' : 'none', borderRadius: '4px' }}
-                        />
-                        {!qrLoaded && (
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ width: '20px', height: '20px', border: '2px solid #2E7D32', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 4px' }} />
-                                <div style={{ fontSize: '9px', color: '#9CA3AF' }}>Loading QR…</div>
-                            </div>
-                        )}
-                    </div>
-                ) : null}
-
-                {/* UPI details */}
-                <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: '10px', padding: '12px 14px', flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', fontWeight: 700, letterSpacing: '0.1em' }}>UPI ID</div>
-                            <div style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '0.03em', wordBreak: 'break-all' }}>{upi}</div>
-                        </div>
-                        <button onClick={copy} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '6px 12px', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', flexShrink: 0, marginLeft: '8px' }}>
-                            {copied ? '✅ Copied' : <><Copy size={12} style={{ marginRight: '4px' }} />Copy</>}
-                        </button>
-                    </div>
-                    {bank && <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>{bank} · A/C: {acc} · IFSC: {ifsc}</div>}
-                    {qrSrc && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.55)', marginTop: '6px' }}>📷 Scan QR to pay instantly via any UPI app</div>}
-                </div>
+        <div onClick={onClose} style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'zoom-out'
+        }}>
+            <div onClick={e => e.stopPropagation()} style={{
+                background: '#fff', borderRadius: '20px', padding: '24px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px',
+                maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+            }}>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#374151', margin: 0 }}>📷 Scan QR to Pay via UPI</p>
+                <img src={src} alt="QR Code" style={{ width: '280px', height: '280px', objectFit: 'contain', borderRadius: '8px' }} />
+                <button onClick={onClose} style={{ padding: '10px 28px', borderRadius: '10px', border: 'none', background: '#2E7D32', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '14px' }}>Close</button>
             </div>
         </div>
     );
 }
+
+// UPI Card helper
+function UpiCard({ name, upi, bank, acc, ifsc, amount, label, uploadedQrUrl }) {
+    const [copied, setCopied] = useState(false);
+    const [qrLoaded, setQrLoaded] = useState(false);
+    const [qrError, setQrError] = useState(false);
+    const [fullscreen, setFullscreen] = useState(false);
+    function copy() {
+        navigator.clipboard.writeText(upi).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    }
+    // Prefer the user's actual uploaded QR; fallback to API-generated one
+    const qrSrc = uploadedQrUrl || (upi && upi !== 'Contact lender for UPI' ? upiQrUrl(upi, name, amount) : null);
+    return (
+        <>
+            {fullscreen && qrSrc && <QrFullscreen src={qrSrc} onClose={() => setFullscreen(false)} />}
+            <div style={{ background: 'linear-gradient(135deg,#1B5E20,#2E7D32)', borderRadius: '16px', padding: '20px', color: '#fff', marginBottom: '16px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.65)', marginBottom: '6px' }}>{label}</div>
+                <div style={{ fontSize: '20px', fontWeight: 900, marginBottom: '4px' }}>{fmt(amount)}</div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', marginBottom: '14px' }}>{name}</div>
+
+                {/* QR + UPI details row */}
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+                    {/* QR Code — click to expand */}
+                    {qrSrc && !qrError ? (
+                        <div
+                            onClick={() => setFullscreen(true)}
+                            title="Click to expand for scanning"
+                            style={{
+                                background: '#fff', borderRadius: '10px', padding: '6px',
+                                flexShrink: 0, width: '100px', height: '100px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+                                cursor: 'zoom-in', position: 'relative', overflow: 'hidden'
+                            }}>
+                            <img
+                                src={qrSrc}
+                                alt={`QR for ${upi}`}
+                                width={88} height={88}
+                                onLoad={() => setQrLoaded(true)}
+                                onError={() => setQrError(true)}
+                                style={{ display: qrLoaded ? 'block' : 'none', borderRadius: '4px', objectFit: 'contain' }}
+                            />
+                            {!qrLoaded && (
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ width: '20px', height: '20px', border: '2px solid #2E7D32', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 4px' }} />
+                                    <div style={{ fontSize: '9px', color: '#9CA3AF' }}>Loading…</div>
+                                </div>
+                            )}
+                            {/* Expand hint */}
+                            {qrLoaded && <div style={{ position: 'absolute', bottom: '2px', right: '3px', fontSize: '9px', color: '#9CA3AF', fontWeight: 700 }}>🔍</div>}
+                        </div>
+                    ) : null}
+
+                    {/* UPI details */}
+                    <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: '10px', padding: '12px 14px', flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', fontWeight: 700, letterSpacing: '0.1em' }}>UPI ID</div>
+                                <div style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '0.03em', wordBreak: 'break-all' }}>{upi}</div>
+                            </div>
+                            <button onClick={copy} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '6px 12px', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', flexShrink: 0, marginLeft: '8px' }}>
+                                {copied ? '✅ Copied' : <><Copy size={12} style={{ marginRight: '4px' }} />Copy</>}
+                            </button>
+                        </div>
+                        {bank && <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>{bank} · A/C: {acc} · IFSC: {ifsc}</div>}
+                        {qrSrc && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.55)', marginTop: '6px' }}>📷 Scan QR to pay instantly via any UPI app</div>}
+                        {qrSrc && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)', marginTop: '2px' }}>👆 Tap QR image to expand for scanning</div>}
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+}
+
 
 
 // ────────────────────────────────────────────────────────────
@@ -199,6 +234,7 @@ export default function CheckoutStepper() {
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [adminQrUrl, setAdminQrUrl] = useState(null); // admin's uploaded QR photo
 
     // Step 1 state
     const [lenderFile, setLenderFile] = useState(null);
@@ -220,6 +256,17 @@ export default function CheckoutStepper() {
                 const b = (data.data || []).find(b => b._id === bookingId);
                 if (!b) { setError('Booking not found.'); setLoading(false); return; }
                 setBooking(b);
+
+                // Fetch admin QR (fetch admin profile to get their qrCodeUrl)
+                try {
+                    const adminRes = await fetch('http://localhost:5000/api/admin/qr', {
+                        headers: { 'x-auth-token': authToken }
+                    });
+                    if (adminRes.ok) {
+                        const adminData = await adminRes.json();
+                        if (adminData.qrCodeUrl) setAdminQrUrl(adminData.qrCodeUrl);
+                    }
+                } catch { /* admin QR not critical — fall back to generated QR */ }
 
                 // Restore step from booking status
                 if (['Lender_Paid'].includes(b.status)) setStep(2);
@@ -585,6 +632,7 @@ export default function CheckoutStepper() {
                             acc={lender.accountNo}
                             ifsc={lender.ifscCode}
                             amount={b?.subtotal || 0}
+                            uploadedQrUrl={lender.qrCodeUrl || null}
                         />
 
                         <div style={{ background: '#F0FDF4', borderRadius: '12px', padding: '16px', marginBottom: '16px', border: '1px solid #BBF7D0' }}>
@@ -743,6 +791,7 @@ export default function CheckoutStepper() {
                                     acc={ADMIN_ACC}
                                     ifsc={ADMIN_IFSC}
                                     amount={platformAmt}
+                                    uploadedQrUrl={adminQrUrl || null}
                                 />
 
                                 <div style={{ background: '#F0FDF4', borderRadius: '12px', padding: '16px', marginBottom: '16px', border: '1px solid #BBF7D0' }}>
