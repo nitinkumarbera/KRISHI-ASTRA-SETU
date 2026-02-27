@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import {
@@ -832,6 +832,56 @@ function SecuritySection({ user, authToken, refreshUser }) {
                 )}
             </div>
         </div>
+
+        {/* ── Delete Account ── */ }
+    <div style={{ marginTop: '20px', border: '2px solid #FEE2E2', borderRadius: '14px', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 22px', background: '#FEF2F2', borderBottom: '1px solid #FEE2E2' }}>
+            <span style={{ fontSize: '18px' }}>🗑️</span>
+            <span style={{ fontSize: '15px', fontWeight: 800, color: '#B91C1C', flex: 1 }}>Danger Zone — Delete My Account</span>
+        </div>
+        <div style={{ padding: '20px 22px' }}>
+            <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px', lineHeight: 1.7 }}>
+                ⚠️ Permanently deletes your account, all your equipment listings, bookings, and data from Krishi Astra Setu.
+                <strong style={{ color: '#B91C1C' }}> This action cannot be undone.</strong>
+            </p>
+            {!showDeleteModal ? (
+                <button
+                    onClick={() => setShowDeleteModal(true)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 22px', borderRadius: '10px', background: '#FEF2F2', border: '2px solid #EF4444', color: '#B91C1C', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#EF4444'; e.currentTarget.style.color = '#fff'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#B91C1C'; }}
+                >
+                    🗑️ Delete My Account
+                </button>
+            ) : (
+                <div style={{ background: '#FFF1F2', borderRadius: '12px', padding: '18px', border: '1.5px solid #FECDD3' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#B91C1C', marginBottom: '12px' }}>
+                        ⚠️ Confirm your password to permanently delete your account:
+                    </p>
+                    {deleteAccMsg && <div style={{ padding: '10px 14px', borderRadius: '8px', marginBottom: '12px', background: deleteAccMsg.includes('✅') ? '#F0FDF4' : '#FEF2F2', color: deleteAccMsg.includes('✅') ? '#15803D' : '#B91C1C', fontSize: '13px', fontWeight: 600 }}>{deleteAccMsg}</div>}
+                    <input
+                        type="password"
+                        value={deleteAccPassword}
+                        onChange={e => { setDeleteAccPassword(e.target.value); setDeleteAccMsg(''); }}
+                        placeholder="Enter your current password"
+                        style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', border: '2px solid #FECDD3', fontSize: '14px', outline: 'none', boxSizing: 'border-box', marginBottom: '14px', fontFamily: 'inherit' }}
+                        onFocus={e => e.target.style.borderColor = '#EF4444'}
+                        onBlur={e => e.target.style.borderColor = '#FECDD3'}
+                    />
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={() => { setShowDeleteModal(false); setDeleteAccPassword(''); setDeleteAccMsg(''); }}
+                            style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1.5px solid #D1D5DB', background: '#fff', color: '#374151', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
+                            Cancel
+                        </button>
+                        <button onClick={handleDeleteAccount} disabled={deleteAccLoading}
+                            style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: deleteAccLoading ? '#6B7280' : '#DC2626', color: '#fff', fontWeight: 700, cursor: deleteAccLoading ? 'not-allowed' : 'pointer', fontSize: '13px' }}>
+                            {deleteAccLoading ? 'Deleting...' : '🗑️ Yes, Delete My Account'}
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    </div>
     );
 }
 
@@ -879,10 +929,16 @@ function DocBox({ label, url, icon: Icon }) {
 }
 
 export default function Profile() {
-    const { user, token: authToken, refreshUser } = useAuth();
+    const { user, token: authToken, refreshUser, logout } = useAuth();
     const { t } = useLanguage();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'rentals' | 'equipment'
     const [showAccount, setShowAccount] = useState(false);
+    // Delete account state
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteAccPassword, setDeleteAccPassword] = useState('');
+    const [deleteAccMsg, setDeleteAccMsg] = useState('');
+    const [deleteAccLoading, setDeleteAccLoading] = useState(false);
 
     const [rentals, setRentals] = useState([]);
     const [myEquipment, setMyEquipment] = useState([]);
@@ -937,6 +993,30 @@ export default function Profile() {
             refreshUser(); // Always sync full profile from server
         }
     }, [authToken]);
+
+    // ── Delete Account Handler ──────────────────────────────────
+    async function handleDeleteAccount() {
+        if (!deleteAccPassword.trim()) { setDeleteAccMsg('⚠️ Please enter your password.'); return; }
+        setDeleteAccLoading(true);
+        try {
+            const res = await fetch('http://localhost:5000/api/user/account', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
+                body: JSON.stringify({ password: deleteAccPassword })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setDeleteAccMsg('✅ Account deleted. Redirecting...');
+                setTimeout(() => { logout?.(); navigate('/'); }, 1500);
+            } else {
+                setDeleteAccMsg('⚠️ ' + (data.message || 'Failed to delete account.'));
+            }
+        } catch {
+            setDeleteAccMsg('⚠️ Network error. Please try again.');
+        } finally {
+            setDeleteAccLoading(false);
+        }
+    }
 
     const fetchDashboardData = async () => {
         setLoading(true);

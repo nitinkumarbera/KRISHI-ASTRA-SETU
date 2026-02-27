@@ -8,7 +8,7 @@ const {
 } = require('../controllers/equipmentController');
 
 // Multer for equipment images (up to 5 photos)
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 5 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 5 } });
 
 // @route   GET  /api/equipment/all
 router.get('/all', getAllEquipment);

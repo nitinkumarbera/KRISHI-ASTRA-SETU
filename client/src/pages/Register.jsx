@@ -83,6 +83,12 @@ export default function Register() {
     function handleFile(k, e) {
         const file = e.target.files[0];
         if (!file) return;
+        // ── 5 MB size guard ──────────────────────────────────────
+        if (file.size > 5 * 1024 * 1024) {
+            alert(`⚠️ Image too large!\n\n"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB.\n\nMaximum allowed size is 5 MB.\nPlease compress or resize the image and try again.`);
+            e.target.value = ''; // reset the input so user can pick again
+            return;
+        }
         setFiles(f => ({ ...f, [k]: file }));
         setPreviews(p => ({ ...p, [k]: URL.createObjectURL(file) }));
         setErrors(er => ({ ...er, [k]: undefined }));

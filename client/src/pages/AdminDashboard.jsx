@@ -261,6 +261,24 @@ export default function AdminDashboard() {
         } catch { showToast('Network error.', 'error'); }
     };
 
+    // ── Delete user (admin action) ────────────────────────────
+    const handleDeleteUser = async (userId, userName) => {
+        const confirmed = await kasPrompt(`Delete user "${userName}" and ALL their data? This is irreversible. Type YES to confirm.`);
+        if (!confirmed || confirmed.trim().toLowerCase() !== 'yes') return;
+        setActionLoading(userId);
+        try {
+            const r = await fetch(`${API}/api/admin/users/${userId}`, { method: 'DELETE', headers });
+            const d = await r.json();
+            if (r.ok) {
+                showToast(d.message || 'User deleted.');
+                setKycUsers(prev => prev.filter(u => u._id !== userId));
+                setSelectedUser(null);
+                fetchKycStats();
+            } else showToast(d.message || 'Delete failed.', 'error');
+        } catch { showToast('Network error.', 'error'); }
+        setActionLoading(null);
+    };
+
     // ── Delete review ──────────────────────────────────────────
     const handleDeleteReview = async (id) => {
         const confirmed = await kasPrompt('Remove this review? (Type YES to confirm)');
@@ -374,7 +392,8 @@ export default function AdminDashboard() {
                                                 <TD>{u.address?.district}, {u.address?.state}</TD>
                                                 <TD style={{ color: C.gray }}>{fmt(u.createdAt)}</TD>
                                                 <TD><KycBadge status={u.kycStatus} /></TD>
-                                                <TD><button onClick={() => { setSelectedUser(u); setRejectionReason(''); setShowRejectBox(false); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: C.paleGreen, color: C.green, border: 'none', padding: '7px 14px', borderRadius: '8px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}><Eye size={14} /> Review</button></TD>
+                                                <TD><button onClick={() => { setSelectedUser(u); setRejectionReason(''); setShowRejectBox(false); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: C.paleGreen, color: C.green, border: 'none', padding: '7px 14px', borderRadius: '8px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}><Eye size={14} /> Review</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteUser(u._id, `${u.name?.first} ${u.name?.last}`); }} disabled={actionLoading === u._id} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FECACA', padding: '7px 10px', borderRadius: '8px', fontWeight: 700, fontSize: '12px', cursor: 'pointer', marginLeft: '4px' }} title="Delete User"><Trash2 size={13} /></button></TD>
                                             </tr>
                                         ))}
                                     </tbody>

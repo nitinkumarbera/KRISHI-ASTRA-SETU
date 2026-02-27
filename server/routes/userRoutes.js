@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
@@ -418,6 +418,42 @@ router.get('/my-analytics', authMiddleware, async (req, res) => {
     } catch (err) {
         console.error('[GET /my-analytics]', err.message);
         res.status(500).json({ success: false, message: 'Analytics error.' });
+    }
+});
+
+
+// ── DELETE /api/user/account ──────────────────────────────────
+// @desc    User deletes their own account (requires password confirmation)
+// @access  Private
+router.delete('/account', authMiddleware, async (req, res) => {
+    try {
+        const bcrypt = require('bcryptjs');
+        const { password } = req.body;
+        if (!password) return res.status(400).json({ success: false, message: 'Password is required to delete your account.' });
+
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) return res.status(400).json({ success: false, message: 'Incorrect password. Account not deleted.' });
+
+        const Equipment = require('../models/Equipment');
+        const Booking = require('../models/Booking');
+        const Review = require('../models/Review');
+        const Notification = require('../models/Notification');
+
+        // Cascade delete all user data
+        await Equipment.deleteMany({ owner: req.user.id });
+        await Booking.deleteMany({ $or: [{ renter: req.user.id }, { owner: req.user.id }] });
+        await Review.deleteMany({ reviewer: req.user.id });
+        await Notification.deleteMany({ recipient: req.user.id });
+        await User.findByIdAndDelete(req.user.id);
+
+        console.log(`[Self-Delete] User ${user.email} deleted their own account`);
+        res.json({ success: true, message: 'Your account and all associated data have been permanently deleted.' });
+    } catch (err) {
+        console.error('[DELETE /account]', err.message);
+        res.status(500).json({ success: false, message: 'Server error during account deletion.' });
     }
 });
 

@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Multer for handling file uploads (KYC docs)
 const storage = multer.memoryStorage(); // stored in memory → streamed to Cloudinary
-const upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } }); // max 20MB — KYC docs can be high-res scans
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } }); // max 5MB per file
 app.use('/api/auth/register', upload.fields([
     { name: 'passportPhoto', maxCount: 1 },
     { name: 'aadhaarImage', maxCount: 1 },

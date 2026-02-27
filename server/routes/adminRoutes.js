@@ -335,5 +335,38 @@ router.get('/analytics', authMiddleware, adminOnly, async (req, res) => {
 });
 
 
+
+// ── DELETE /api/admin/users/:id ──────────────────────────────
+// Cascade-delete: Equipment → Bookings → Reviews → Notifications → User
+router.delete('/users/:id', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const targetId = req.params.id;
+
+        // Prevent admin deleting themselves
+        if (String(targetId) === String(req.user.id)) {
+            return res.status(400).json({ success: false, message: 'Admins cannot delete their own account.' });
+        }
+
+        const user = await User.findById(targetId);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+        // Cascade delete all user data
+        await Equipment.deleteMany({ owner: targetId });
+        await Booking.deleteMany({ $or: [{ renter: targetId }, { owner: targetId }] });
+        await Review.deleteMany({ reviewer: targetId });
+
+        const Notification = require('../models/Notification');
+        await Notification.deleteMany({ recipient: targetId });
+
+        await User.findByIdAndDelete(targetId);
+
+        console.log(`[Admin Delete] User ${user.email} (${targetId}) deleted by admin ${req.user.id}`);
+        res.json({ success: true, message: `User "${user.name?.first || user.email}" and all their data have been permanently deleted.` });
+    } catch (err) {
+        console.error('[DELETE /admin/users/:id]', err.message);
+        res.status(500).json({ success: false, message: 'Server error during user deletion.' });
+    }
+});
+
 module.exports = router;
 
