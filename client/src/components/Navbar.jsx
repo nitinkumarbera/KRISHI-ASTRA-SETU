@@ -116,16 +116,13 @@ export default function Navbar() {
                     </button>
 
                     {/* Central Branding */}
-                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }} className="hidden sm:flex">
-                        <img src={logo} alt="KAS Logo" style={{ height: "40px", width: "auto" }} />
-                        <div>
-                            <p style={{ fontSize: "16px", fontWeight: 900, color: "#2E7D32", margin: 0, lineHeight: 1.2, fontFamily: "'Georgia', serif" }}>
-                                Krishi Astra Setu
-                            </p>
-                            <p style={{ fontSize: "9px", fontWeight: 700, color: "#4CAF50", margin: "2px 0 0", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-                                Bridging Tools, Empowering Farmers
-                            </p>
-                        </div>
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }} className="hidden sm:flex">
+                        <h1 style={{ fontSize: "1.25rem", fontWeight: 800, color: "#2E7D32", margin: 0, lineHeight: 1, fontFamily: "'Poppins', sans-serif" }}>
+                            Krishi Astra Setu
+                        </h1>
+                        <p style={{ fontSize: "10px", fontWeight: 700, color: "#8BC34A", margin: "2px 0 0", textTransform: "uppercase", letterSpacing: "1px" }}>
+                            Bridging Tools, Empowering Farmers
+                        </p>
                     </div>
 
                     {/* Desktop nav links */}

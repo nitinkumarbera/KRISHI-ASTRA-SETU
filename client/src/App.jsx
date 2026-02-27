@@ -27,7 +27,6 @@ import CheckoutStepper from './pages/CheckoutStepper'
 
 function App() {
   const [splashDone, setSplashDone] = useState(false);
-
   return (
     <>
       {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
