@@ -7,6 +7,7 @@ import {
     Package, CalendarDays, Star, Megaphone, BarChart3, Send
 } from 'lucide-react';
 import { kasAlert, kasPrompt } from '../components/KasDialog';
+import AnalyticsDashboard from '../components/AnalyticsDashboard';
 
 const API = 'http://localhost:5000';
 const C = {
@@ -506,16 +507,64 @@ export default function AdminDashboard() {
                                                 </div>
                                             ))}
                                         </div>
-                                        <InfoRow label="Handover Token" value={selectedBooking.handoverToken} />
-                                        <InfoRow label="Status" value={selectedBooking.status} />
+                                        <InfoRow label="Status" value={selectedBooking.status?.replace(/_/g, ' ') || '—'} />
                                         <InfoRow label="Payment Status" value={selectedBooking.paymentStatus} />
+                                        <InfoRow label="Handover Token" value={selectedBooking.handoverToken} />
                                         <InfoRow label="Booked On" value={fmt(selectedBooking.createdAt)} />
 
-                                        {/* Rental Proof Photos */}
+                                        {/* ── 💳 Payment Proof Review (Escrow) ── */}
+                                        {(selectedBooking.lenderPaymentProofUrl || selectedBooking.adminPaymentProofUrl || selectedBooking.status === 'Admin_Paid_Pending') && (
+                                            <div style={{ marginTop: '12px', background: '#F0FDF4', borderRadius: '14px', padding: '16px', border: '1.5px solid #BBF7D0' }}>
+                                                <p style={{ margin: '0 0 12px', fontWeight: 800, color: '#15803D', fontSize: '13px' }}>
+                                                    💳 Payment Proof Screenshots
+                                                </p>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+                                                    <DocThumbnail label="Screenshot #1 — Paid to Lender" url={selectedBooking.lenderPaymentProofUrl} />
+                                                    <DocThumbnail label="Screenshot #2 — Paid to Admin" url={selectedBooking.adminPaymentProofUrl} />
+                                                </div>
+                                                {selectedBooking.status === 'Admin_Paid_Pending' && (
+                                                    <button
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            try {
+                                                                const r = await fetch(`${API}/api/payments/admin-approve/${selectedBooking._id}`, {
+                                                                    method: 'PATCH', headers
+                                                                });
+                                                                const d = await r.json();
+                                                                if (d.success) {
+                                                                    showToast('✅ Booking approved! Renter & Lender notified.');
+                                                                    setSelectedBooking(null);
+                                                                    fetchBookings();
+                                                                } else {
+                                                                    showToast(d.message || 'Approval failed.', 'error');
+                                                                }
+                                                            } catch {
+                                                                showToast('Network error.', 'error');
+                                                            }
+                                                        }}
+                                                        style={{ width: '100%', padding: '13px', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg,#1B5E20,#2E7D32)', color: '#fff', fontWeight: 800, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 14px rgba(46,125,50,0.35)' }}
+                                                    >
+                                                        <CheckCircle size={16} /> ✅ Approve Both Payments & Notify Parties
+                                                    </button>
+                                                )}
+                                                {selectedBooking.status === 'Admin_Approved' && (
+                                                    <div style={{ textAlign: 'center', padding: '10px', background: '#DCFCE7', borderRadius: '10px', color: '#15803D', fontWeight: 800, fontSize: '13px' }}>
+                                                        ✅ Payments Approved — Awaiting Lender Handover Code Entry
+                                                    </div>
+                                                )}
+                                                {selectedBooking.status === 'Rental_Started' && (
+                                                    <div style={{ textAlign: 'center', padding: '10px', background: '#DCFCE7', borderRadius: '10px', color: '#15803D', fontWeight: 800, fontSize: '13px' }}>
+                                                        🚜 Rental In Progress — Handover Code Verified
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Rental Proof Photos — only shown after rental started */}
                                         {selectedBooking.rentalPhotos?.length > 0 && (
                                             <div style={{ marginTop: '8px' }}>
                                                 <p style={{ margin: '0 0 8px', fontWeight: 700, color: '#1F2937', fontSize: '13px' }}>
-                                                    📸 Rental Proof Photos
+                                                    📸 Rental Completion Photos
                                                     <span style={{ marginLeft: '8px', background: '#F0FDF4', color: C.green, padding: '2px 8px', borderRadius: '99px', fontSize: '11px', fontWeight: 700 }}>
                                                         {selectedBooking.rentalPhotos.length} photo{selectedBooking.rentalPhotos.length > 1 ? 's' : ''}
                                                     </span>
@@ -534,11 +583,13 @@ export default function AdminDashboard() {
                                                 </div>
                                             </div>
                                         )}
-                                        {(!selectedBooking.rentalPhotos || selectedBooking.rentalPhotos.length === 0) && (
-                                            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 14px', fontSize: '12px', color: '#92400E', fontWeight: 600 }}>
-                                                ⚠️ No proof photos uploaded yet by the renter.
-                                            </div>
-                                        )}
+                                        {/* Only warn about missing rental photos after rental has actually started */}
+                                        {(!selectedBooking.rentalPhotos || selectedBooking.rentalPhotos.length === 0) &&
+                                            ['Rental_Started', 'Completed'].includes(selectedBooking.status) && (
+                                                <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 14px', fontSize: '12px', color: '#92400E', fontWeight: 600 }}>
+                                                    ⚠️ No proof photos uploaded yet by the renter.
+                                                </div>
+                                            )}
                                     </div>
                                 </div>
                             </div>
@@ -607,81 +658,17 @@ export default function AdminDashboard() {
 
                 {/* ══ ANALYTICS TAB ════════════════════════════════════ */}
                 {activeTab === 'analytics' && (
-                    analyticsLoading ? <EmptyState icon="📈" msg="Loading analytics…" /> : !analytics ? <EmptyState icon="📈" msg="No analytics data" /> : (
-                        <>
-                            <h2 style={{ margin: '0 0 20px', fontSize: '20px', fontWeight: 800, color: '#1F2937' }}>📈 Platform Analytics</h2>
-                            <div style={{ display: 'flex', gap: '16px', marginBottom: '28px', flexWrap: 'wrap' }}>
-                                <StatCard label="Total Revenue" count={`₹${analytics.totalRevenue?.toLocaleString('en-IN')}`} color={C.green} icon="💰" sub="from completed bookings" />
-                                <StatCard label="Total Bookings" count={analytics.totalBookings} color={C.blue} icon="📅" sub={`${analytics.completedBookings} completed`} />
-                                <StatCard label="Active Listings" count={analytics.activeEquipment} color={C.orange} icon="📦" />
-                                <StatCard label="Total Farmers" count={analytics.totalUsers} color={C.purple} icon="👨‍🌾" />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
-                                {/* Category Breakdown */}
-                                <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                                    <h3 style={{ margin: '0 0 16px', fontSize: '15px', fontWeight: 800, color: '#1F2937' }}>🚜 Top Equipment Categories</h3>
-                                    {analytics.categoryBreakdown?.length === 0 ? <p style={{ color: C.gray, fontSize: '13px' }}>No data yet</p> :
-                                        analytics.categoryBreakdown?.map((c, i) => {
-                                            const max = analytics.categoryBreakdown[0]?.count || 1;
-                                            const pct = Math.round((c.count / max) * 100);
-                                            const colors = [C.green, C.blue, C.orange, C.purple, C.red];
-                                            return (
-                                                <div key={c._id} style={{ marginBottom: '12px' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '13px' }}>
-                                                        <span style={{ fontWeight: 600 }}>{c._id || 'Other'}</span>
-                                                        <span style={{ color: C.gray }}>{c.count} listings</span>
-                                                    </div>
-                                                    <div style={{ background: '#F3F4F6', borderRadius: '99px', height: '8px' }}>
-                                                        <div style={{ width: `${pct}%`, height: '8px', borderRadius: '99px', background: colors[i % colors.length], transition: 'width 0.4s' }} />
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                </div>
-                                {/* District Breakdown */}
-                                <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                                    <h3 style={{ margin: '0 0 16px', fontSize: '15px', fontWeight: 800, color: '#1F2937' }}>📍 Top Farmer Districts</h3>
-                                    {analytics.districtBreakdown?.length === 0 ? <p style={{ color: C.gray, fontSize: '13px' }}>No data yet</p> :
-                                        analytics.districtBreakdown?.map((d, i) => {
-                                            const max = analytics.districtBreakdown[0]?.count || 1;
-                                            const pct = Math.round((d.count / max) * 100);
-                                            const colors = [C.blue, C.green, C.orange, C.purple, C.red];
-                                            return (
-                                                <div key={d._id} style={{ marginBottom: '12px' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '13px' }}>
-                                                        <span style={{ fontWeight: 600 }}>{d._id || 'Unknown'}</span>
-                                                        <span style={{ color: C.gray }}>{d.count} farmers</span>
-                                                    </div>
-                                                    <div style={{ background: '#F3F4F6', borderRadius: '99px', height: '8px' }}>
-                                                        <div style={{ width: `${pct}%`, height: '8px', borderRadius: '99px', background: colors[i % colors.length], transition: 'width 0.4s' }} />
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                </div>
-                            </div>
-
-                            {/* Monthly Trend */}
-                            <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                                <h3 style={{ margin: '0 0 20px', fontSize: '15px', fontWeight: 800, color: '#1F2937' }}>📆 Monthly Booking Trend (Last 6 Months)</h3>
-                                {analytics.monthlyTrend?.length === 0 ? <p style={{ color: C.gray, fontSize: '13px' }}>No booking data yet</p> : (
-                                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', height: '140px' }}>
-                                        {analytics.monthlyTrend?.map((m, i) => {
-                                            const maxCount = Math.max(...analytics.monthlyTrend.map(x => x.count), 1);
-                                            const barH = Math.round((m.count / maxCount) * 120);
-                                            return (
-                                                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                                                    <span style={{ fontSize: '11px', fontWeight: 700, color: C.green }}>{m.count}</span>
-                                                    <div title={`₹${m.revenue?.toLocaleString('en-IN')}`} style={{ width: '100%', height: `${barH}px`, background: `linear-gradient(to top, ${C.green}, ${C.lightGreen})`, borderRadius: '6px 6px 0 0', minHeight: '6px', cursor: 'pointer', transition: 'opacity 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.7'} onMouseLeave={e => e.currentTarget.style.opacity = '1'} />
-                                                    <span style={{ fontSize: '11px', color: C.gray, fontWeight: 600 }}>{MONTHS[(m._id.month - 1) % 12]}</span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        </>
-                    )
+                    <AnalyticsDashboard
+                        analytics={analytics}
+                        loading={analyticsLoading}
+                        onRefresh={() => {
+                            setAnalyticsLoading(true);
+                            fetch(`${API}/api/admin/analytics`, { headers })
+                                .then(r => r.json())
+                                .then(d => { if (d.success) setAnalytics(d.data); })
+                                .finally(() => setAnalyticsLoading(false));
+                        }}
+                    />
                 )}
             </div>
 
@@ -722,7 +709,22 @@ export default function AdminDashboard() {
                                     <InfoRow label="Account No." value={selectedUser.finance?.accountNo} />
                                     <InfoRow label="IFSC Code" value={selectedUser.finance?.ifscCode} />
                                     <InfoRow label="UPI ID" value={selectedUser.finance?.upiId} />
+                                    {selectedUser.finance?.upiId && (
+                                        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <img
+                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent('upi://pay?pa=' + selectedUser.finance.upiId + '&pn=' + encodeURIComponent([selectedUser.name?.first, selectedUser.name?.last].filter(Boolean).join(' ') || 'KAS User') + '&cu=INR')}`}
+                                                alt="UPI QR"
+                                                style={{ width: '84px', height: '84px', borderRadius: '8px', border: '2px solid #E9D5FF', background: '#fff', padding: '3px', boxSizing: 'border-box' }}
+                                                onError={e => { e.target.style.display = 'none'; }}
+                                            />
+                                            <div>
+                                                <p style={{ fontSize: '10px', color: '#7C3AED', fontWeight: 700, margin: '0 0 3px' }}>SCAN TO PAY</p>
+                                                <p style={{ fontSize: '11px', color: '#6B7280', margin: 0, maxWidth: '120px', lineHeight: 1.4 }}>Scan this QR in any UPI app to pay this user</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
+
                             </div>
                             <div style={{ padding: '24px', overflowY: 'auto', maxHeight: '60vh', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 <p style={{ fontWeight: 800, fontSize: '12px', color: C.gray, textTransform: 'uppercase', margin: '0 0 4px' }}>📂 KYC Documents</p>

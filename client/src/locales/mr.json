@@ -78,7 +78,8 @@
         "tabs": {
             "profile": "माझे प्रोफाइल",
             "rentals": "माझे भाडे",
-            "equipment": "लेंडर हब"
+            "equipment": "लेंडर हब",
+            "analytics": "विश्लेषण"
         },
         "kyc": {
             "verified": "✅ KYC सत्यापित",

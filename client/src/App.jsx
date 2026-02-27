@@ -21,6 +21,7 @@ import Booking from './pages/Booking'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
 import ForgotPassword from './pages/ForgotPassword'
+import CheckoutStepper from './pages/CheckoutStepper'
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
               <Route path="/booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/add-equipment" element={<ProtectedRoute><AddEquipment /></ProtectedRoute>} />
+              <Route path="/checkout/:bookingId" element={<ProtectedRoute><CheckoutStepper /></ProtectedRoute>} />
               <Route path="/admin-dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
 
               {/* ── 404 — redirect unknown routes to home ── */}

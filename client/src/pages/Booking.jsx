@@ -612,15 +612,26 @@ export default function Booking() {
                         ))}
                     </div>
 
+                    {/* ── 🔐 Proceed to Payment (Escrow Stepper) ── */}
+                    <button
+                        type="button"
+                        onClick={() => navigate(`/checkout/${bookingId}`)}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B5E20, #2E7D32)', color: '#fff', fontSize: '16px', fontWeight: 900, border: 'none', cursor: 'pointer', marginBottom: '12px', boxShadow: '0 6px 24px rgba(46,125,50,0.4)', transition: 'all 0.2s', fontFamily: "'Poppins', sans-serif" }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 32px rgba(46,125,50,0.5)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(46,125,50,0.4)'; }}
+                    >
+                        💳 Proceed to Payment →
+                    </button>
+
                     {/* Download Bill Button */}
                     <button
                         type="button"
                         onClick={generateBill}
-                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '15px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B5E20, #2E7D32)', color: '#fff', fontSize: '15px', fontWeight: 800, border: 'none', cursor: 'pointer', marginBottom: '12px', boxShadow: '0 6px 24px rgba(46,125,50,0.35)', transition: 'all 0.2s' }}
-                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(46,125,50,0.45)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(46,125,50,0.35)'; }}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '14px', borderRadius: '14px', background: 'transparent', color: '#2E7D32', fontSize: '14px', fontWeight: 700, border: '2px solid #2E7D32', cursor: 'pointer', marginBottom: '12px', transition: 'all 0.2s' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#F0FDF4'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                     >
-                        <Download size={18} strokeWidth={2.5} />
+                        <Download size={16} strokeWidth={2.5} />
                         Download Bill PDF
                     </button>
 

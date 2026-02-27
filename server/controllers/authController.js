@@ -129,9 +129,13 @@ exports.loginUser = async (req, res) => {
             }
         };
 
-        // 4. Sign & return token
-        jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' }, (err, token) => {
+        // 4. Sign & return token + full profile
+        jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' }, async (err, token) => {
             if (err) throw err;
+
+            // Fetch full profile (everything except password) so the
+            // frontend doesn't need a second round-trip to get name/address/bank/docs
+            const fullUser = await User.findById(user._id).select('-password').lean();
 
             // Determine redirect route based on role
             const redirect = user.role === 'Admin' ? '/admin-dashboard' : '/marketplace';
@@ -140,13 +144,7 @@ exports.loginUser = async (req, res) => {
                 success: true,
                 token,
                 redirect,
-                user: {
-                    id: user._id,
-                    name: user.name.first,
-                    email: user.email,
-                    role: user.role,
-                    kycStatus: user.kycStatus
-                }
+                user: fullUser     // ← complete user object with name, address, finance, documents, etc.
             });
         });
 

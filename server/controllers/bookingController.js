@@ -140,7 +140,7 @@ exports.verifyHandover = async (req, res) => {
         if (booking.handoverToken !== enteredToken)
             return res.status(400).json({ success: false, message: 'Invalid Handover Token. Please check with the renter.' });
 
-        booking.status = 'In Progress';
+        booking.status = 'Rental_Started';
         booking.handoverVerifiedAt = new Date();
         await booking.save();
 
@@ -215,8 +215,8 @@ exports.uploadRentalPhotos = async (req, res) => {
         if (!booking) return res.status(404).json({ success: false, message: 'Booking not found.' });
         if (String(booking.renter) !== String(req.user.id))
             return res.status(403).json({ success: false, message: 'Only the renter can upload rental photos.' });
-        if (booking.status !== 'In Progress')
-            return res.status(400).json({ success: false, message: 'Photos can only be uploaded while rental is In Progress.' });
+        if (booking.status !== 'Rental_Started')
+            return res.status(400).json({ success: false, message: 'Photos can only be uploaded while rental is in progress.' });
 
         const { photos } = req.body; // [{ base64, lat, lng, address, takenAt }]
         if (!photos || !photos.length)
@@ -263,7 +263,7 @@ exports.confirmReturn = async (req, res) => {
         if (!booking) return res.status(404).json({ success: false, message: 'Booking not found.' });
         if (String(booking.renter) !== String(req.user.id))
             return res.status(403).json({ success: false, message: 'Only the renter can confirm return.' });
-        if (booking.status !== 'In Progress')
+        if (booking.status !== 'Rental_Started')
             return res.status(400).json({ success: false, message: 'Return can only be confirmed during an active rental.' });
         if (booking.returnConfirmedByRenter)
             return res.status(400).json({ success: false, message: 'Return already confirmed.' });
@@ -300,7 +300,7 @@ exports.fileDamageReport = async (req, res) => {
         if (!booking) return res.status(404).json({ success: false, message: 'Booking not found.' });
         if (String(booking.owner) !== String(req.user.id))
             return res.status(403).json({ success: false, message: 'Only the equipment owner can file a damage report.' });
-        if (booking.status !== 'In Progress')
+        if (booking.status !== 'Rental_Started')
             return res.status(400).json({ success: false, message: 'Damage report can only be filed during an active rental.' });
 
         const { description, severity, photos } = req.body;

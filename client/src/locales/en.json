@@ -78,7 +78,8 @@
         "tabs": {
             "profile": "My Profile",
             "rentals": "My Rentals",
-            "equipment": "Lender Hub"
+            "equipment": "Lender Hub",
+            "analytics": "Analytics"
         },
         "kyc": {
             "verified": "✅ KYC Verified",

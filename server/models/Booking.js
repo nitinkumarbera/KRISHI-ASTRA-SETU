@@ -26,10 +26,24 @@ const BookingSchema = new mongoose.Schema({
     handoverToken: { type: String, required: true }, // 6-digit code shown to renter
     handoverVerifiedAt: { type: Date },              // When owner entered token
 
+    // ── Payment Proof Screenshots ─────────────────────────────
+    lenderPaymentProofUrl: { type: String, default: '' },   // Screenshot #1 – renter paid lender
+    adminPaymentProofUrl: { type: String, default: '' },   // Screenshot #2 – renter paid platform
+
     // ── Status ───────────────────────────────────────────────
     status: {
         type: String,
-        enum: ['Confirmed', 'In Progress', 'Completed', 'Cancelled'],
+        enum: [
+            // Legacy statuses (old bookings)
+            'Confirmed', 'In Progress', 'Completed', 'Cancelled',
+            // Escrow flow statuses (new bookings)
+            'Lender_Paid',           // Screenshot #1 uploaded
+            'Admin_Paid_Pending',    // Screenshot #2 uploaded, waiting admin
+            'Admin_Approved',        // Admin verified both screenshots
+            'Rental_Started',        // Lender entered 6-digit code
+            'Cancelled_By_Renter',
+            'Cancelled_By_Lender'
+        ],
         default: 'Confirmed'
     },
     paymentStatus: { type: String, enum: ['Pending', 'Paid', 'Refunded'], default: 'Pending' },

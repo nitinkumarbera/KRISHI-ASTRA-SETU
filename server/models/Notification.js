@@ -12,9 +12,10 @@ const NotificationSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['Booking', 'KYC', 'System', 'Equipment'],
+        enum: ['Booking', 'KYC', 'System', 'Equipment', 'Payment', 'Review', 'Handover'],
         default: 'System'
     },
+
     message: {
         type: String,
         required: true

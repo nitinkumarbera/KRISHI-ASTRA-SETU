@@ -11,6 +11,7 @@ const equipmentRoutes = require('./routes/equipmentRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api/equipment', equipmentRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/payments', paymentRoutes);
 
 
 // ── Health check ───────────────────────────────────────────
@@ -54,4 +56,32 @@ app.get('/api/health', (req, res) => res.json({ status: 'OK', project: 'Krishi A
 app.use((req, res) => res.status(404).json({ success: false, message: `Route ${req.path} not found.` }));
 
 // ── Start Server ───────────────────────────────────────────
-app.listen(PORT, () => console.log(`🚀 KAS Server running on http://localhost:${PORT}`));
+const { execSync } = require('child_process');
+
+function startServer() {
+    const server = app.listen(PORT, () => {
+        console.log(`🚀 KAS Server running on http://localhost:${PORT}`);
+    });
+
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.warn(`⚠️  Port ${PORT} is in use. Killing old process and restarting...`);
+            try {
+                // Find and kill the process using the port (Windows)
+                const result = execSync(`netstat -ano | findstr :${PORT} | findstr LISTENING`, { encoding: 'utf8' });
+                const pid = result.trim().split(/\s+/).pop();
+                if (pid && !isNaN(pid)) {
+                    execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' });
+                    console.log(`✅ Killed old process (PID ${pid}). Retrying in 1s...`);
+                }
+            } catch (_) { /* no process found or already gone */ }
+            setTimeout(startServer, 1000);
+        } else {
+            console.error('❌ Server error:', err.message);
+            process.exit(1);
+        }
+    });
+}
+
+startServer();
+

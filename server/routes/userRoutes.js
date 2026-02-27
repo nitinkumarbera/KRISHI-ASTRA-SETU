@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
@@ -13,7 +13,7 @@ const kycFields = upload.fields([
     { name: 'qrCodeImage', maxCount: 1 }
 ]);
 
-// Helper: upload buffer → Cloudinary
+// Helper: upload buffer â†’ Cloudinary
 async function uploadBuf(file) {
     if (!file) return null;
     const buf = file.buffer || file.data;
@@ -27,9 +27,9 @@ async function uploadBuf(file) {
     });
 }
 
-// ── @route   GET /api/user/profile ───────────────────────────
-// ── @desc    Get the logged-in user's full profile (no password)
-// ── @access  Private (requires JWT)
+// â”€â”€ @route   GET /api/user/profile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ @desc    Get the logged-in user's full profile (no password)
+// â”€â”€ @access  Private (requires JWT)
 router.get('/profile', authMiddleware, async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
@@ -41,9 +41,9 @@ router.get('/profile', authMiddleware, async (req, res) => {
     }
 });
 
-// ── @route   PUT /api/user/profile ───────────────────────────
-// ── @desc    Update profile fields (for Pending/Rejected users)
-// ── @access  Private (requires JWT)
+// â”€â”€ @route   PUT /api/user/profile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ @desc    Update profile fields (for Pending/Rejected users)
+// â”€â”€ @access  Private (requires JWT)
 router.put('/profile', authMiddleware, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -68,9 +68,9 @@ router.put('/profile', authMiddleware, async (req, res) => {
     }
 });
 
-// ── @route   PATCH /api/user/update-kyc ──────────────────────
-// ── @desc    Re-submit with new documents (Rejected/Pending users only)
-// ── @access  Private (requires JWT)
+// â”€â”€ @route   PATCH /api/user/update-kyc â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ @desc    Re-submit with new documents (Rejected/Pending users only)
+// â”€â”€ @access  Private (requires JWT)
 router.patch('/update-kyc', authMiddleware, kycFields, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -111,9 +111,9 @@ router.patch('/update-kyc', authMiddleware, kycFields, async (req, res) => {
     }
 });
 
-// ── @route   PATCH /api/user/update-qr ───────────────────────
-// ── @desc    Update only the UPI QR code image (all users, incl. Verified)
-// ── @access  Private (requires JWT)
+// â”€â”€ @route   PATCH /api/user/update-qr â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ @desc    Update only the UPI QR code image (all users, incl. Verified)
+// â”€â”€ @access  Private (requires JWT)
 router.patch('/update-qr', authMiddleware, upload.single('qrCodeImage'), async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -132,10 +132,10 @@ router.patch('/update-qr', authMiddleware, upload.single('qrCodeImage'), async (
     }
 });
 
-// ── @route   PATCH /api/user/edit-profile ────────────────────
-// ── @desc    Update editable profile fields for ANY user (incl. Verified)
+// â”€â”€ @route   PATCH /api/user/edit-profile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ @desc    Update editable profile fields for ANY user (incl. Verified)
 //            LOCKED: aadhaarNo, aadhaarImage, voterIdImage
-// ── @access  Private (requires JWT)
+// â”€â”€ @access  Private (requires JWT)
 const editFields = upload.fields([
     { name: 'passportPhoto', maxCount: 1 },
     { name: 'passbookImage', maxCount: 1 },
@@ -147,7 +147,7 @@ router.patch('/edit-profile', authMiddleware, editFields, async (req, res) => {
 
         const { firstName, middleName, lastName, gender, dob, mobile, email, address, finance } = req.body;
 
-        // ── Personal Info (all editable fields)
+        // â”€â”€ Personal Info (all editable fields)
         if (firstName) user.name.first = firstName.trim();
         if (middleName !== undefined) user.name.middle = middleName.trim();
         if (lastName) user.name.last = lastName.trim();
@@ -156,19 +156,19 @@ router.patch('/edit-profile', authMiddleware, editFields, async (req, res) => {
         if (mobile) user.mobile = mobile.trim();
         if (email) user.email = email.trim().toLowerCase();
 
-        // ── Address (merge — preserves existing sub-fields)
+        // â”€â”€ Address (merge â€” preserves existing sub-fields)
         if (address) {
             const a = typeof address === 'string' ? JSON.parse(address) : address;
             user.address = { ...user.address.toObject?.() ?? user.address, ...a };
         }
 
-        // ── Finance / Bank (merge)
+        // â”€â”€ Finance / Bank (merge)
         if (finance) {
             const f = typeof finance === 'string' ? JSON.parse(finance) : finance;
             user.finance = { ...user.finance.toObject?.() ?? user.finance, ...f };
         }
 
-        // ── Document uploads (passport photo + passbook only — aadhaar & voter locked)
+        // â”€â”€ Document uploads (passport photo + passbook only â€” aadhaar & voter locked)
         const files = req.files || {};
         const [ppUrl, pbUrl] = await Promise.all([
             uploadBuf(files.passportPhoto?.[0]),
@@ -186,9 +186,9 @@ router.patch('/edit-profile', authMiddleware, editFields, async (req, res) => {
     }
 });
 
-// ── @route   POST /api/user/forgot-password ──────────────────
-// ── @desc    Reset password by verifying email + Aadhaar number
-// ── @access  Public
+// â”€â”€ @route   POST /api/user/forgot-password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ @desc    Reset password by verifying email + Aadhaar number
+// â”€â”€ @access  Public
 router.post('/forgot-password', async (req, res) => {
     try {
         const bcrypt = require('bcryptjs');
@@ -216,9 +216,9 @@ router.post('/forgot-password', async (req, res) => {
     }
 });
 
-// ── @route   PATCH /api/user/change-password ─────────────────
-// ── @desc    Change password (requires current password verification)
-// ── @access  Private (requires JWT)
+// â”€â”€ @route   PATCH /api/user/change-password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ @desc    Change password (requires current password verification)
+// â”€â”€ @access  Private (requires JWT)
 router.patch('/change-password', authMiddleware, async (req, res) => {
     try {
         const bcrypt = require('bcryptjs');
@@ -248,9 +248,9 @@ router.patch('/change-password', authMiddleware, async (req, res) => {
     }
 });
 
-// ── @route   PATCH /api/user/change-email ────────────────────
-// ── @desc    Change email (requires current password verification)
-// ── @access  Private (requires JWT)
+// â”€â”€ @route   PATCH /api/user/change-email â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ @desc    Change email (requires current password verification)
+// â”€â”€ @access  Private (requires JWT)
 router.patch('/change-email', authMiddleware, async (req, res) => {
     try {
         const bcrypt = require('bcryptjs');
@@ -287,7 +287,143 @@ router.patch('/change-email', authMiddleware, async (req, res) => {
     }
 });
 
+// â”€â”€ @route   GET /api/user/my-analytics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ @desc    Per-user analytics: renter spend, lender earnings, bookings timeline
+// â”€â”€ @access  Private (requires JWT)
+router.get('/my-analytics', authMiddleware, async (req, res) => {
+    try {
+        const Booking = require('../models/Booking');
+        const Equipment = require('../models/Equipment');
+        const uid = req.user.id;
+        const since365 = new Date(Date.now() - 365 * 86400000);
+
+        const [
+            // As Renter
+            renterBookings,
+            renterDailyAgg,
+            renterCategoryAgg,
+            // As Lender (owner)
+            lenderBookings,
+            lenderDailyAgg,
+            lenderCategoryAgg,
+            // My equipment listed
+            myEquipmentCount,
+        ] = await Promise.all([
+            // All renter bookings summary
+            Booking.find({ renter: uid })
+                .select('status totalAmount totalPrice createdAt equipment rentalDates subtotal platformFee gst')
+                .populate('equipment', 'name category')
+                .lean(),
+
+            // Renter daily aggregation (last 365 days)
+            Booking.aggregate([
+                { $match: { renter: require('mongoose').Types.ObjectId.createFromHexString(uid), createdAt: { $gte: since365 } } },
+                {
+                    $group: {
+                        _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' }, day: { $dayOfMonth: '$createdAt' } },
+                        bookings: { $sum: 1 },
+                        spend: { $sum: { $ifNull: ['$totalAmount', '$totalPrice'] } },
+                        platformFee: { $sum: { $ifNull: ['$platformFee', 0] } },
+                        gst: { $sum: { $ifNull: ['$gst', 0] } },
+                        completed: { $sum: { $cond: [{ $eq: ['$status', 'Completed'] }, 1, 0] } },
+                        cancelled: { $sum: { $cond: [{ $in: ['$status', ['Cancelled', 'Cancelled_By_Renter', 'Cancelled_By_Lender']] }, 1, 0] } },
+                    }
+                },
+                { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+            ]),
+
+            // Renter category spend
+            Booking.aggregate([
+                { $match: { renter: require('mongoose').Types.ObjectId.createFromHexString(uid) } },
+                { $lookup: { from: 'equipment', localField: 'equipment', foreignField: '_id', as: 'eq' } },
+                { $unwind: { path: '$eq', preserveNullAndEmptyArrays: false } },
+                { $group: { _id: '$eq.category', spend: { $sum: { $ifNull: ['$totalAmount', '$totalPrice'] } }, bookings: { $sum: 1 } } },
+                { $sort: { spend: -1 } }, { $limit: 8 }
+            ]),
+
+            // All lender bookings summary
+            Booking.find({ owner: uid })
+                .select('status totalAmount totalPrice createdAt equipment rentalDates subtotal platformFee gst renter')
+                .populate('equipment', 'name category')
+                .lean(),
+
+            // Lender daily aggregation
+            Booking.aggregate([
+                { $match: { owner: require('mongoose').Types.ObjectId.createFromHexString(uid), createdAt: { $gte: since365 } } },
+                {
+                    $group: {
+                        _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' }, day: { $dayOfMonth: '$createdAt' } },
+                        bookings: { $sum: 1 },
+                        earned: { $sum: { $ifNull: ['$subtotal', 0] } },
+                        completed: { $sum: { $cond: [{ $eq: ['$status', 'Completed'] }, 1, 0] } },
+                        cancelled: { $sum: { $cond: [{ $in: ['$status', ['Cancelled', 'Cancelled_By_Renter', 'Cancelled_By_Lender']] }, 1, 0] } },
+                    }
+                },
+                { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+            ]),
+
+            // Lender category earnings
+            Booking.aggregate([
+                { $match: { owner: require('mongoose').Types.ObjectId.createFromHexString(uid) } },
+                { $lookup: { from: 'equipment', localField: 'equipment', foreignField: '_id', as: 'eq' } },
+                { $unwind: { path: '$eq', preserveNullAndEmptyArrays: false } },
+                { $group: { _id: '$eq.category', earned: { $sum: { $ifNull: ['$subtotal', 0] } }, bookings: { $sum: 1 } } },
+                { $sort: { earned: -1 } }, { $limit: 8 }
+            ]),
+
+            Equipment.countDocuments({ owner: uid }),
+        ]);
+
+        // Summaries from booking lists
+        const renterTotal = renterBookings.reduce((s, b) => s + (b.totalAmount || b.totalPrice || 0), 0);
+        const renterFee = renterBookings.reduce((s, b) => s + (b.platformFee || 0), 0);
+        const renterGst = renterBookings.reduce((s, b) => s + (b.gst || 0), 0);
+        const renterCompleted = renterBookings.filter(b => b.status === 'Completed').length;
+        const renterCancelled = renterBookings.filter(b => ['Cancelled', 'Cancelled_By_Renter', 'Cancelled_By_Lender'].includes(b.status)).length;
+
+        const lenderTotal = lenderBookings.reduce((s, b) => s + (b.subtotal || 0), 0);
+        const lenderCompleted = lenderBookings.filter(b => b.status === 'Completed').length;
+        const lenderCancelled = lenderBookings.filter(b => ['Cancelled', 'Cancelled_By_Renter', 'Cancelled_By_Lender'].includes(b.status)).length;
+
+        // Format daily data
+        const fmtDaily = (agg, key) => agg.map(d => ({
+            date: `${d._id.year}-${String(d._id.month).padStart(2, '0')}-${String(d._id.day).padStart(2, '0')}`,
+            bookings: d.bookings,
+            [key]: d[key] || 0,
+            platformFee: d.platformFee || 0,
+            gst: d.gst || 0,
+            completed: d.completed,
+            cancelled: d.cancelled,
+        }));
+
+        res.json({
+            success: true, data: {
+                // Renter stats
+                renterBookings: renterBookings.length,
+                renterCompleted, renterCancelled,
+                renterTotalSpend: renterTotal,
+                renterFee, renterGst,
+                renterDailyData: fmtDaily(renterDailyAgg, 'spend'),
+                renterCategoryBreakdown: renterCategoryAgg,
+                // Lender stats
+                lenderBookings: lenderBookings.length,
+                lenderCompleted, lenderCancelled,
+                lenderTotalEarned: lenderTotal,
+                lenderDailyData: fmtDaily(lenderDailyAgg, 'earned'),
+                lenderCategoryBreakdown: lenderCategoryAgg,
+                // Equipment
+                myEquipmentCount,
+            }
+        });
+    } catch (err) {
+        console.error('[GET /my-analytics]', err.message);
+        res.status(500).json({ success: false, message: 'Analytics error.' });
+    }
+});
+
 module.exports = router;
+
+
 
 
 

@@ -12,6 +12,7 @@ import jsPDF from 'jspdf';
 import _autoTableMod from 'jspdf-autotable';
 const autoTable = typeof _autoTableMod === 'function' ? _autoTableMod : (_autoTableMod?.default ?? _autoTableMod);
 import { kasAlert, kasPrompt } from '../components/KasDialog';
+import UserAnalytics from '../components/UserAnalytics';
 
 // ── Helpers ─────────────────────────────────────────────────
 function maskAadhaar(n) { return n ? `XXXX-XXXX-${n.slice(-4)}` : '—'; }
@@ -933,6 +934,7 @@ export default function Profile() {
     useEffect(() => {
         if (authToken) {
             fetchDashboardData();
+            refreshUser(); // Always sync full profile from server
         }
     }, [authToken]);
 
@@ -1186,6 +1188,7 @@ export default function Profile() {
                         { id: 'profile', icon: User, label: t('profile.tabs.profile') },
                         { id: 'rentals', icon: Clock, label: t('profile.tabs.rentals') },
                         { id: 'equipment', icon: Tractor, label: t('profile.tabs.equipment') },
+                        { id: 'analytics', icon: Star, label: '📊 ' + t('profile.tabs.analytics') },
                     ].map(tab => (
                         <button
                             key={tab.id}
@@ -1288,7 +1291,19 @@ export default function Profile() {
                                     ) : (
                                         <div style={{ textAlign: 'center', padding: '10px' }}>
                                             <QrCode size={36} color="#9CA3AF" style={{ margin: '0 auto 6px' }} />
-                                            <p style={{ fontSize: '11px', color: '#9CA3AF', margin: 0 }}>No QR uploaded</p>
+
+                                            {user.finance?.upiId ? (
+                                                <div style={{ textAlign: 'center' }}>
+                                                    <img
+                                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent('upi://pay?pa=' + user.finance.upiId + '&pn=' + encodeURIComponent([user.name?.first, user.name?.last].filter(Boolean).join(' ') || 'User') + '&cu=INR')}`}
+                                                        alt="Auto UPI QR"
+                                                        style={{ width: '80px', height: '80px', borderRadius: '8px', border: '2px solid #E5E7EB', padding: '3px', background: '#fff' }}
+                                                    />
+                                                    <p style={{ fontSize: '10px', color: '#10B981', margin: '6px 0 0', fontWeight: 700 }}>Auto-generated</p>
+                                                </div>
+                                            ) : (
+                                                <p style={{ fontSize: '11px', color: '#9CA3AF', margin: 0 }}>No QR uploaded</p>
+                                            )}
                                         </div>
                                     )}
                                     {qrUploading && (
@@ -1527,7 +1542,7 @@ export default function Profile() {
                                             <div>
                                                 <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#111827', margin: '0 0 4px' }}>{b.equipment?.name || '—'}</h4>
                                                 <p style={{ fontSize: '13px', color: '#6B7280', margin: 0 }}>{formatDate(b.rentalDates?.start)} → {formatDate(b.rentalDates?.end)}</p>
-                                                {b.status === 'In Progress' && (() => {
+                                                {b.status === 'Rental_Started' && (() => {
                                                     const start = new Date(b.rentalDates?.start);
                                                     const end = new Date(b.rentalDates?.end);
                                                     const total = Math.max(1, Math.ceil((end - start) / 86400000));
@@ -1550,15 +1565,15 @@ export default function Profile() {
                                                         ⭐ {t('profile.rentals.rate_machine')}
                                                     </button>
                                                 )}
-                                                <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px', background: b.status === 'Completed' ? '#F0FDF4' : b.status === 'In Progress' ? '#E0F2F1' : '#FFFBEB', color: b.status === 'Completed' ? '#15803D' : b.status === 'In Progress' ? '#00796B' : '#92400E' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px', background: b.status === 'Completed' ? '#F0FDF4' : b.status === 'Rental_Started' ? '#E0F2F1' : '#FFFBEB', color: b.status === 'Completed' ? '#15803D' : b.status === 'Rental_Started' ? '#00796B' : '#92400E' }}>
                                                     {b.status.toUpperCase()}
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* ── Geo-Tagged Photo Upload (only for In Progress) ── */}
-                                    {b.status === 'In Progress' && (
+                                    {/* ── Geo-Tagged Photo Upload (only for Rental_Started) ── */}
+                                    {b.status === 'Rental_Started' && (
                                         <GeoPhotoUploader bookingId={b._id} existingPhotos={b.rentalPhotos || []} authToken={authToken} onUploaded={fetchDashboardData} />
                                     )}
 
@@ -1585,8 +1600,8 @@ export default function Profile() {
                                         </div>
                                     )}
 
-                                    {/* ── Return Confirmation Panel (In Progress only) ── */}
-                                    {b.status === 'In Progress' && (
+                                    {/* ── Return Confirmation Panel (Rental_Started only) ── */}
+                                    {b.status === 'Rental_Started' && (
                                         <div style={{ marginTop: '14px', borderTop: '1px solid #F3F4F6', paddingTop: '14px' }}>
                                             {b.returnConfirmedByRenter ? (
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '10px', padding: '10px 14px' }}>
@@ -1676,7 +1691,7 @@ export default function Profile() {
                                 </div>
                                 <div style={{ background: 'rgba(255,255,255,0.1)', padding: '16px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.2)' }}>
                                     <p style={{ fontSize: '12px', fontWeight: 700, opacity: 0.8, marginBottom: '4px' }}>{t('profile.lender.stat_active')}</p>
-                                    <p style={{ fontSize: '24px', fontWeight: 900 }}>{lenderRentals.filter(r => r.status === 'Confirmed' || r.status === 'In Progress').length}</p>
+                                    <p style={{ fontSize: '24px', fontWeight: 900 }}>{lenderRentals.filter(r => r.status === 'Confirmed' || r.status === 'Rental_Started').length}</p>
                                 </div>
                             </div>
                         </div>
@@ -1700,12 +1715,12 @@ export default function Profile() {
                                                     <p style={{ fontSize: '12px', color: '#6B7280', margin: 0 }}>{r.renter?.mobile} · {r.equipment?.name}</p>
                                                 </div>
                                             </div>
-                                            <span style={{ fontSize: '11px', fontWeight: 800, padding: '4px 10px', borderRadius: '999px', background: r.status === 'In Progress' ? '#E0F2F1' : '#F9FAFB', color: r.status === 'In Progress' ? '#00796B' : '#6B7280' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: 800, padding: '4px 10px', borderRadius: '999px', background: r.status === 'Rental_Started' ? '#E0F2F1' : '#F9FAFB', color: r.status === 'Rental_Started' ? '#00796B' : '#6B7280' }}>
                                                 {r.status.toUpperCase()}
                                             </span>
                                         </div>
 
-                                        {r.status === 'Confirmed' ? (
+                                        {['Confirmed', 'Lender_Paid', 'Admin_Paid_Pending', 'Admin_Approved'].includes(r.status) ? (
                                             <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
                                                 {/* ── Renter Details ── */}
@@ -1761,9 +1776,17 @@ export default function Profile() {
                                                                 <p style={{ fontSize: '12px', fontWeight: 600, color: '#1E3A5F', margin: 0 }}>{r.renter?.finance?.bankAccount?.bankName || '—'}</p>
                                                             </div>
                                                             {r.renter?.finance?.upiId && (
-                                                                <div>
-                                                                    <p style={{ fontSize: '10px', color: '#93C5FD', margin: '0 0 2px' }}>UPI ID</p>
-                                                                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#1E3A5F', margin: 0 }}>{r.renter?.finance?.upiId}</p>
+                                                                <div style={{ gridColumn: '1 / -1' }}>
+                                                                    <p style={{ fontSize: '10px', color: '#93C5FD', margin: '0 0 4px' }}>UPI ID</p>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                                                        <p style={{ fontSize: '12px', fontWeight: 600, color: '#1E3A5F', margin: 0 }}>{r.renter?.finance?.upiId}</p>
+                                                                        <img
+                                                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent('upi://pay?pa=' + r.renter.finance.upiId + '&pn=' + encodeURIComponent([r.renter.name?.first, r.renter.name?.last].filter(Boolean).join(' ') || 'Renter') + '&cu=INR')}`}
+                                                                            alt="Renter UPI QR"
+                                                                            style={{ width: '80px', height: '80px', borderRadius: '8px', border: '2px solid #BFDBFE', background: '#fff', padding: '3px', boxSizing: 'border-box' }}
+                                                                            onError={e => { e.target.style.display = 'none'; }}
+                                                                        />
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1840,7 +1863,7 @@ export default function Profile() {
                                                 </button>
                                             </div>
 
-                                        ) : r.status === 'In Progress' ? (
+                                        ) : r.status === 'Rental_Started' ? (
                                             <div style={{ background: '#F0FDF4', borderRadius: '12px', padding: '12px' }}>
                                                 {/* ── Day counter + Return Status ── */}
                                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
@@ -2058,6 +2081,14 @@ export default function Profile() {
                     </div>
                 )
             }
+
+            {/* ══ ANALYTICS TAB ════════════════ */}
+            {activeTab === 'analytics' && (
+                <div style={{ maxWidth: '900px', margin: '0 auto', paddingTop: '32px', paddingLeft: '16px', paddingRight: '16px' }}>
+                    <UserAnalytics authToken={authToken} userName={[user?.name?.first, user?.name?.last].filter(Boolean).join(' ') || user?.role || 'User'} />
+                </div>
+            )}
+
         </div >
     );
 }
