@@ -13,6 +13,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
+const visitRoutes = require('./routes/visitRoutes');
 
 
 const app = express();
@@ -49,6 +50,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/visits', visitRoutes);
 
 
 // ── Health check ───────────────────────────────────────────

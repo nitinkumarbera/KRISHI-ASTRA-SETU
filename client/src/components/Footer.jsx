@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import VisitorCounter from "./VisitorCounter";
 
 const POLICY_LINKS = ["Privacy Policy", "Terms of Service", "Refund Policy", "Cookie Policy"];
 const AIMS = [
@@ -58,7 +59,7 @@ export default function Footer() {
                     source: 'quick_feedback'
                 })
             });
-        } catch {} // non-critical — swallow errors
+        } catch { } // non-critical — swallow errors
         setFbSent(true);
         setFeedback("");
     }
@@ -220,6 +221,11 @@ export default function Footer() {
                     </div>
 
                 </div>
+            </div>
+
+            {/* ── Visitor Counter ────────────────────────────────────── */}
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", padding: "24px 28px", display: "flex", justifyContent: "center" }}>
+                <VisitorCounter />
             </div>
 
             {/* ── Bottom bar ──────────────────────────────────────── */}
