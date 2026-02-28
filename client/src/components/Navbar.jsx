@@ -97,12 +97,12 @@ export default function Navbar() {
             <header style={{ position: "sticky", top: 0, zIndex: 50, background: "#fff", borderBottom: "1px solid #E5E7EB", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
                 <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 16px", display: "flex", alignItems: "center", gap: "8px", height: "60px", overflow: "hidden" }}>
 
-                    {/* Logo — Link prevents full page reload */}
-                    <Link to="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", flexShrink: 0 }}>
-                        <img src={logo} alt="Krishi Astra Setu" style={{ height: "48px", width: "auto" }} />
-                        <div style={{ display: "none" }} className="md:block">
-                            <p style={{ fontSize: "14px", fontWeight: 800, color: "#2E7D32", lineHeight: 1.2 }}>Krishi Astra</p>
-                            <p style={{ fontSize: "10px", fontWeight: 700, color: "#8BC34A", letterSpacing: "0.12em", textTransform: "uppercase" }}>Setu</p>
+                    {/* Logo + Company Name — always visible on all screens */}
+                    <Link to="/" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", flexShrink: 0 }}>
+                        <img src={logo} alt="Krishi Astra Setu" style={{ height: "42px", width: "auto", flexShrink: 0 }} />
+                        <div>
+                            <p style={{ fontSize: "clamp(12px, 3vw, 16px)", fontWeight: 800, color: "#2E7D32", lineHeight: 1.2, margin: 0, fontFamily: "'Poppins', sans-serif", whiteSpace: "nowrap" }}>Krishi Astra Setu</p>
+                            <p style={{ fontSize: "clamp(7px, 2vw, 10px)", fontWeight: 700, color: "#8BC34A", letterSpacing: "0.1em", textTransform: "uppercase", margin: 0, whiteSpace: "nowrap" }}>Bridging Tools, Empowering Farmers</p>
                         </div>
                     </Link>
 
@@ -116,15 +116,6 @@ export default function Navbar() {
                         {t('nav.all_equipment')} <ChevronDown size={14} />
                     </button>
 
-                    {/* Central Branding */}
-                    <div style={{ flex: 1, flexDirection: "column", alignItems: "center", justifyContent: "center" }} className="hidden sm:flex">
-                        <h1 style={{ fontSize: "1.25rem", fontWeight: 800, color: "#2E7D32", margin: 0, lineHeight: 1, fontFamily: "'Poppins', sans-serif" }}>
-                            Krishi Astra Setu
-                        </h1>
-                        <p style={{ fontSize: "10px", fontWeight: 700, color: "#8BC34A", margin: "2px 0 0", textTransform: "uppercase", letterSpacing: "1px" }}>
-                            Bridging Tools, Empowering Farmers
-                        </p>
-                    </div>
 
                     {/* Desktop nav links — hidden on mobile */}
                     <nav style={{ alignItems: "center", gap: "4px", flexShrink: 0 }} className="hidden md:flex">
