@@ -191,42 +191,15 @@ export default function Footer() {
                         </div>
                     </div>
 
-                    {/* Col 4 — Aims & Objectives */}
+                    {/* Col 4 — Live Visitor Counter */}
                     <div>
-                        <ColHeading>Aims & Objectives</ColHeading>
-                        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                            {AIMS.map((aim, i) => (
-                                <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: "9px", marginBottom: "10px" }}>
-                                    <span style={{ width: "18px", height: "18px", borderRadius: "50%", background: "#2E7D32", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#fff", flexShrink: 0, marginTop: "1px" }}>
-                                        ✓
-                                    </span>
-                                    <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)", lineHeight: 1.5 }}>{aim}</span>
-                                </li>
-                            ))}
-                        </ul>
-
-                        {/* App badges */}
-                        <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                            {["📱 Download on App Store", "🤖 Get it on Google Play"].map(b => (
-                                <button
-                                    key={b}
-                                    style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.75)", fontSize: "12px", fontWeight: 600, padding: "9px 14px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.12)", cursor: "pointer", textAlign: "left", transition: "background 0.2s" }}
-                                    onMouseEnter={e => e.currentTarget.style.background = "rgba(139,195,74,0.15)"}
-                                    onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.07)"}
-                                >
-                                    {b}
-                                </button>
-                            ))}
-                        </div>
+                        <ColHeading>Live Visitors</ColHeading>
+                        <VisitorCounter />
                     </div>
 
                 </div>
             </div>
 
-            {/* ── Visitor Counter ────────────────────────────────────── */}
-            <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", padding: "24px 28px", display: "flex", justifyContent: "center" }}>
-                <VisitorCounter />
-            </div>
 
             {/* ── Bottom bar ──────────────────────────────────────── */}
             <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", padding: "18px 28px" }}>
