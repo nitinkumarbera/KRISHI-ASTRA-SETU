@@ -88,14 +88,14 @@ export default function Navbar() {
 
     return (
         <>
-            {/* Announcement strip */}
-            <div style={{ background: "#2E7D32", color: "#fff", textAlign: "center", fontSize: "12px", padding: "8px 16px", fontWeight: 500, letterSpacing: "0.02em" }}>
+            {/* Announcement strip — single line marquee on mobile */}
+            <div style={{ background: "#2E7D32", color: "#fff", textAlign: "center", fontSize: "12px", padding: "6px 16px", fontWeight: 500, letterSpacing: "0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 🌾 Rent quality farm equipment at the best prices — Harvest more, spend less!
             </div>
 
             {/* Main Navbar */}
             <header style={{ position: "sticky", top: 0, zIndex: 50, background: "#fff", borderBottom: "1px solid #E5E7EB", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-                <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 20px", display: "flex", alignItems: "center", gap: "12px", height: "64px" }}>
+                <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 16px", display: "flex", alignItems: "center", gap: "8px", height: "60px", overflow: "hidden" }}>
 
                     {/* Logo — Link prevents full page reload */}
                     <Link to="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", flexShrink: 0 }}>
@@ -126,8 +126,8 @@ export default function Navbar() {
                         </p>
                     </div>
 
-                    {/* Desktop nav links */}
-                    <nav style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }} className="hidden md:flex">
+                    {/* Desktop nav links — hidden on mobile */}
+                    <nav style={{ alignItems: "center", gap: "4px", flexShrink: 0 }} className="hidden md:flex">
                         {NAV_LINKS(t, isAuthenticated).map(n => {
                             const active = isActive(n.to);
                             return (
@@ -163,17 +163,18 @@ export default function Navbar() {
                     {/* Right action buttons */}
                     <div style={{ display: "flex", alignItems: "center", gap: "12px", marginLeft: "auto", flexShrink: 0 }}>
 
-                        {/* Admin Panel link */}
+                        {/* Admin Panel link — desktop only */}
                         {isAdmin && (
                             <Link to="/admin-dashboard"
-                                style={{ display: "flex", alignItems: "center", gap: "6px", background: "#FFF3E0", color: "#E65100", fontSize: "12px", fontWeight: 800, padding: "7px 14px", borderRadius: "10px", textDecoration: "none", border: "1.5px solid #FFCC80", letterSpacing: "0.02em" }}
+                                className="hidden md:flex"
+                                style={{ alignItems: "center", gap: "6px", background: "#FFF3E0", color: "#E65100", fontSize: "12px", fontWeight: 800, padding: "7px 14px", borderRadius: "10px", textDecoration: "none", border: "1.5px solid #FFCC80", letterSpacing: "0.02em", flexShrink: 0 }}
                             >
                                 <ShieldCheck size={15} /> {t('nav.admin')}
                             </Link>
                         )}
 
-                        {/* ── Language Switcher ── */}
-                        <div style={{ position: "relative" }}>
+                        {/* ── Language Switcher — hidden on small mobile ── */}
+                        <div style={{ position: "relative", flexShrink: 0 }} className="hidden sm:block">
                             <button onClick={() => setLangMenuOpen(v => !v)}
                                 style={{ background: "none", border: "1.5px solid #E5E7EB", borderRadius: "10px", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 700, color: "#4B5563" }}
                             >
@@ -260,11 +261,11 @@ export default function Navbar() {
                                     style={{ display: "flex", alignItems: "center", gap: "8px", background: "#F1F8E9", border: "1.5px solid #A5D6A7", borderRadius: "10px", padding: "6px 12px 6px 6px", cursor: "pointer" }}
                                 >
                                     {user?.documents?.passportPhoto
-                                        ? <img src={user.documents.passportPhoto} alt="" style={{ width: "30px", height: "30px", borderRadius: "50%", objectFit: "cover", border: "2px solid #2E7D32" }} />
-                                        : <UserCircle2 size={28} color="#2E7D32" />
+                                        ? <img src={user.documents.passportPhoto} alt="" style={{ width: "28px", height: "28px", borderRadius: "50%", objectFit: "cover", border: "2px solid #2E7D32", flexShrink: 0 }} />
+                                        : <UserCircle2 size={26} color="#2E7D32" style={{ flexShrink: 0 }} />
                                     }
-                                    <span style={{ fontSize: "13px", fontWeight: 700, color: "#2E7D32", maxWidth: "90px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.name?.first || "User"}</span>
-                                    <ChevronDown size={14} color="#6B7280" />
+                                    <span className="hidden sm:inline" style={{ fontSize: "13px", fontWeight: 700, color: "#2E7D32", maxWidth: "80px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.name?.first || "User"}</span>
+                                    <ChevronDown size={12} color="#6B7280" className="hidden sm:block" />
                                 </button>
 
                                 {userMenuOpen && (
@@ -314,7 +315,7 @@ export default function Navbar() {
                         )}
 
                         {/* Hamburger — mobile only */}
-                        <button style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", display: "block" }} className="sm:hidden"
+                        <button style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", padding: "4px", flexShrink: 0 }} className="md:hidden"
                             onClick={() => setMobileOpen(v => !v)}>
                             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
                         </button>
