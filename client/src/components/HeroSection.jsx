@@ -54,12 +54,12 @@ export default function HeroSection() {
                 style={{
                     background: "linear-gradient(135deg, #1B5E20 0%, #2E7D32 40%, #388E3C 75%, #558B2F 100%)",
                     borderRadius: "20px",
-                    padding: "52px 48px",
+                    padding: "clamp(28px, 5vw, 52px) clamp(20px, 5vw, 48px)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    gap: "32px",
-                    minHeight: "260px",
+                    gap: "24px",
+                    minHeight: "200px",
                 }}
             >
                 {/* Decorative circles */}
@@ -75,7 +75,7 @@ export default function HeroSection() {
                     </div>
 
                     {/* Headline */}
-                    <h1 style={{ fontSize: "2.6rem", fontWeight: 800, color: "#ffffff", lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "16px", fontFamily: "'Poppins', sans-serif" }}>
+                    <h1 style={{ fontSize: "clamp(1.5rem, 5vw, 2.6rem)", fontWeight: 800, color: "#ffffff", lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "16px", fontFamily: "'Poppins', sans-serif" }}>
                         {t('hero.title_part1')}<br />
                         <span style={{ color: "#C5E1A5" }}>{t('hero.title_part2')}</span>
                     </h1>
@@ -109,7 +109,7 @@ export default function HeroSection() {
                 </div>
 
                 {/* Right icon illustration */}
-                <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "center", width: "180px", height: "180px", borderRadius: "50%", background: "rgba(255,255,255,0.10)", flexShrink: 0 }} className="hidden md:flex">
+                <div style={{ position: "relative", zIndex: 1, alignItems: "center", justifyContent: "center", width: "180px", height: "180px", borderRadius: "50%", background: "rgba(255,255,255,0.10)", flexShrink: 0 }} className="hidden md:flex">
                     <Tractor size={100} color="rgba(255,255,255,0.9)" strokeWidth={1.2} />
                 </div>
             </div>

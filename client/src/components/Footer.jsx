@@ -2,7 +2,7 @@
    Multi-column professional footer
 ─────────────────────────────────────────────────────────── */
 import API_BASE from '../utils/api';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import VisitorCounter from "./VisitorCounter";
@@ -36,6 +36,14 @@ export default function Footer() {
     const [fbSent, setFbSent] = useState(false);
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
+    const [appLinks, setAppLinks] = useState({ websiteUrl: '', appDownloadUrl: '' });
+
+    useEffect(() => {
+        fetch(`${API_BASE}/api/settings`)
+            .then(r => r.json())
+            .then(d => { if (d.success) setAppLinks({ websiteUrl: d.websiteUrl, appDownloadUrl: d.appDownloadUrl }); })
+            .catch(() => { });
+    }, []);
 
     function authNav(path) {
         if (isAuthenticated) {
@@ -189,6 +197,12 @@ export default function Footer() {
                             <button onClick={() => authNav('/add-equipment')} style={{ display: 'block', fontSize: '13px', color: 'rgba(255,255,255,0.55)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '9px', padding: 0, textAlign: 'left', transition: 'color 0.18s' }} onMouseEnter={e => e.currentTarget.style.color = '#8BC34A'} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.55)'}>🌾 List Equipment</button>
                             <FootingLink to="/contact">Contact &amp; Support</FootingLink>
                             <FootingLink to="/">Home</FootingLink>
+                            {appLinks.websiteUrl && (
+                                <FootingLink to={appLinks.websiteUrl} external>🌐 Website Link</FootingLink>
+                            )}
+                            {appLinks.appDownloadUrl && (
+                                <FootingLink to={appLinks.appDownloadUrl} external>📱 App Download Link</FootingLink>
+                            )}
                         </div>
                     </div>
 

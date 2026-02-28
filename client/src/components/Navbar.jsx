@@ -117,7 +117,7 @@ export default function Navbar() {
                     </button>
 
                     {/* Central Branding */}
-                    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }} className="hidden sm:flex">
+                    <div style={{ flex: 1, flexDirection: "column", alignItems: "center", justifyContent: "center" }} className="hidden sm:flex">
                         <h1 style={{ fontSize: "1.25rem", fontWeight: 800, color: "#2E7D32", margin: 0, lineHeight: 1, fontFamily: "'Poppins', sans-serif" }}>
                             Krishi Astra Setu
                         </h1>

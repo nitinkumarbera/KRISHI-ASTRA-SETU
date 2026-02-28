@@ -102,10 +102,9 @@ export default function Login() {
 
             {/* ── LEFT — Branded farm panel ─────────────────────── */}
             <div style={{
-                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                 background: 'linear-gradient(160deg, #1B5E20 0%, #2E7D32 45%, #33691E 80%, #1B4332 100%)',
                 padding: '48px 40px', position: 'relative', overflow: 'hidden',
-                minWidth: '360px',
             }} className="hidden md:flex">
 
                 {/* Decorative circles */}

@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import {
     ShieldCheck, Users, Clock, XCircle, CheckCircle, Eye, EyeOff,
     MapPin, Building, RefreshCw, X, AlertCircle, Search, Trash2,
-    Package, CalendarDays, Star, Megaphone, BarChart3, Send
+    Package, CalendarDays, Star, Megaphone, BarChart3, Send, Link2, Settings
 } from 'lucide-react';
 import { kasAlert, kasPrompt } from '../components/KasDialog';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
@@ -248,6 +248,34 @@ export default function AdminDashboard() {
     useEffect(() => { if (activeTab === 'analytics') fetchAnalytics(); }, [activeTab]);
     useEffect(() => { if (activeTab === 'feedback') fetchFeedbacks(); }, [activeTab]);
 
+    // ── Platform Links state ───────────────────────────────────
+    const [platLinks, setPlatLinks] = useState({ websiteUrl: '', appDownloadUrl: '' });
+    const [platLinksSaving, setPlatLinksSaving] = useState(false);
+    const [platLinksMsg, setPlatLinksMsg] = useState(null);
+
+    useEffect(() => {
+        if (activeTab === 'settings') {
+            fetch(`${API}/api/settings`)
+                .then(r => r.json())
+                .then(d => { if (d.success) setPlatLinks({ websiteUrl: d.websiteUrl || '', appDownloadUrl: d.appDownloadUrl || '' }); })
+                .catch(() => { });
+        }
+    }, [activeTab]);
+
+    const handleSavePlatLinks = async () => {
+        setPlatLinksSaving(true); setPlatLinksMsg(null);
+        try {
+            const r = await fetch(`${API}/api/settings`, {
+                method: 'PUT', headers,
+                body: JSON.stringify(platLinks)
+            });
+            const d = await r.json();
+            if (d.success) { setPlatLinksMsg({ type: 'ok', text: '✅ Links saved successfully!' }); }
+            else setPlatLinksMsg({ type: 'err', text: d.message || 'Save failed.' });
+        } catch { setPlatLinksMsg({ type: 'err', text: 'Network error.' }); }
+        setPlatLinksSaving(false);
+    };
+
     // ── KYC Actions ────────────────────────────────────────────
     const handleKycAction = async (userId, status) => {
         if (status === 'Rejected' && !rejectionReason.trim()) {
@@ -343,6 +371,7 @@ export default function AdminDashboard() {
         { id: 'announce', icon: <Megaphone size={16} />, label: 'Announce' },
         { id: 'analytics', icon: <BarChart3 size={16} />, label: 'Analytics' },
         { id: 'feedback', icon: <Send size={16} />, label: 'Feedback' },
+        { id: 'settings', icon: <Settings size={16} />, label: 'Settings' },
     ];
 
     return (
@@ -415,7 +444,7 @@ export default function AdminDashboard() {
                                                 <TD style={{ color: C.gray }}>{fmt(u.createdAt)}</TD>
                                                 <TD><KycBadge status={u.kycStatus} /></TD>
                                                 <TD><button onClick={() => { setSelectedUser(u); setRejectionReason(''); setShowRejectBox(false); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: C.paleGreen, color: C.green, border: 'none', padding: '7px 14px', borderRadius: '8px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}><Eye size={14} /> Review</button>
-                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteUser(u._id, `${u.name?.first} ${u.name?.last}`); }} disabled={actionLoading === u._id} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FECACA', padding: '7px 10px', borderRadius: '8px', fontWeight: 700, fontSize: '12px', cursor: 'pointer', marginLeft: '4px' }} title="Delete User"><Trash2 size={13} /></button></TD>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteUser(u._id, `${u.name?.first} ${u.name?.last}`); }} disabled={actionLoading === u._id} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FECACA', padding: '7px 10px', borderRadius: '8px', fontWeight: 700, fontSize: '12px', cursor: 'pointer', marginLeft: '4px' }} title="Delete User"><Trash2 size={13} /></button></TD>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -770,6 +799,67 @@ export default function AdminDashboard() {
                                 ))}
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* ══ SETTINGS TAB (Platform Links) ════════════════════ */}
+                {activeTab === 'settings' && (
+                    <div style={{ maxWidth: '640px' }}>
+                        <h2 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 800, color: '#1F2937' }}>⚙️ Platform Settings</h2>
+                        <p style={{ margin: '0 0 24px', color: C.gray, fontSize: '14px' }}>Manage the public website link and app download link shown in the footer.</p>
+                        <div style={{ background: '#fff', borderRadius: '20px', padding: '28px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div>
+                                <label style={{ fontSize: '13px', fontWeight: 700, color: '#374151', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                                    <Link2 size={14} /> 🌐 Website Link (URL)
+                                </label>
+                                <input
+                                    type="url"
+                                    value={platLinks.websiteUrl}
+                                    onChange={e => setPlatLinks(p => ({ ...p, websiteUrl: e.target.value }))}
+                                    placeholder="https://krishi-astra-setu-yu9x.vercel.app"
+                                    style={{ width: '100%', padding: '12px 14px', border: '1.5px solid #E5E7EB', borderRadius: '12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                                />
+                                {platLinks.websiteUrl && (
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                        <a href={platLinks.websiteUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: C.green, fontWeight: 600 }}>Test Link ↗</a>
+                                        <button onClick={() => setPlatLinks(p => ({ ...p, websiteUrl: '' }))} style={{ fontSize: '12px', color: C.red, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>✕ Clear</button>
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '13px', fontWeight: 700, color: '#374151', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                                    📱 App Download Link (URL)
+                                </label>
+                                <input
+                                    type="url"
+                                    value={platLinks.appDownloadUrl}
+                                    onChange={e => setPlatLinks(p => ({ ...p, appDownloadUrl: e.target.value }))}
+                                    placeholder="https://play.google.com/store/apps/details?id=..."
+                                    style={{ width: '100%', padding: '12px 14px', border: '1.5px solid #E5E7EB', borderRadius: '12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                                />
+                                {platLinks.appDownloadUrl && (
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                        <a href={platLinks.appDownloadUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: C.green, fontWeight: 600 }}>Test Link ↗</a>
+                                        <button onClick={() => setPlatLinks(p => ({ ...p, appDownloadUrl: '' }))} style={{ fontSize: '12px', color: C.red, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>✕ Clear</button>
+                                    </div>
+                                )}
+                            </div>
+                            {platLinksMsg && (
+                                <div style={{ background: platLinksMsg.type === 'ok' ? C.paleGreen : C.paleRed, color: platLinksMsg.type === 'ok' ? C.green : C.red, padding: '10px 14px', borderRadius: '10px', fontWeight: 600, fontSize: '13px' }}>
+                                    {platLinksMsg.text}
+                                </div>
+                            )}
+                            <button
+                                onClick={handleSavePlatLinks}
+                                disabled={platLinksSaving}
+                                style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: '8px', background: C.green, color: '#fff', border: 'none', padding: '12px 28px', borderRadius: '12px', fontWeight: 700, fontSize: '14px', cursor: platLinksSaving ? 'not-allowed' : 'pointer', opacity: platLinksSaving ? 0.7 : 1, boxShadow: '0 4px 16px rgba(46,125,50,0.3)' }}
+                            >
+                                <Settings size={16} /> {platLinksSaving ? 'Saving…' : 'Save Links'}
+                            </button>
+                        </div>
+                        <div style={{ background: '#F0F9FF', border: '1.5px solid #BAE6FD', borderRadius: '12px', padding: '14px 18px', marginTop: '16px', fontSize: '13px', color: '#0369A1' }}>
+                            ℹ️ These links appear in the website footer under "Quick Links" for all visitors.
+                        </div>
                     </div>
                 )}
             </div>
