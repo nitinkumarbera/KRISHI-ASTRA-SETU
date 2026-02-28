@@ -94,15 +94,15 @@ export default function Navbar() {
             </div>
 
             {/* Main Navbar */}
-            <header style={{ position: "sticky", top: 0, zIndex: 50, background: "#fff", borderBottom: "1px solid #E5E7EB", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-                <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 16px", display: "flex", alignItems: "center", gap: "8px", height: "60px", overflow: "hidden" }}>
+            <header style={{ position: "sticky", top: 0, zIndex: 50, background: "#fff", borderBottom: "1px solid #E5E7EB", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflowX: "clip" }}>
+                <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 16px", display: "flex", alignItems: "center", gap: "8px", height: "60px" }}>
 
-                    {/* Logo + Company Name — always visible on all screens */}
-                    <Link to="/" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", flexShrink: 0 }}>
+                    {/* Logo + Company Name — always visible, shrinks on very small screens */}
+                    <Link to="/" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", flexShrink: 1, minWidth: 0, overflow: "hidden" }}>
                         <img src={logo} alt="Krishi Astra Setu" style={{ height: "42px", width: "auto", flexShrink: 0 }} />
-                        <div>
-                            <p style={{ fontSize: "clamp(12px, 3vw, 16px)", fontWeight: 800, color: "#2E7D32", lineHeight: 1.2, margin: 0, fontFamily: "'Poppins', sans-serif", whiteSpace: "nowrap" }}>Krishi Astra Setu</p>
-                            <p style={{ fontSize: "clamp(7px, 2vw, 10px)", fontWeight: 700, color: "#8BC34A", letterSpacing: "0.1em", textTransform: "uppercase", margin: 0, whiteSpace: "nowrap" }}>Bridging Tools, Empowering Farmers</p>
+                        <div style={{ minWidth: 0, overflow: "hidden" }}>
+                            <p style={{ fontSize: "clamp(12px, 3vw, 16px)", fontWeight: 800, color: "#2E7D32", lineHeight: 1.2, margin: 0, fontFamily: "'Poppins', sans-serif", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Krishi Astra Setu</p>
+                            <p style={{ fontSize: "clamp(7px, 2vw, 10px)", fontWeight: 700, color: "#8BC34A", letterSpacing: "0.1em", textTransform: "uppercase", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Bridging Tools, Empowering Farmers</p>
                         </div>
                     </Link>
 
@@ -327,14 +327,14 @@ export default function Navbar() {
                         {/* Mobile page links */}
                         {[
                             { label: "🏠 Home", to: "/" },
-                            { label: "🚜 Marketplace", to: "/marketplace" },
+                            { label: "🚜 Marketplace", to: isAuthenticated ? "/marketplace" : "/login", state: !isAuthenticated ? { from: '/marketplace' } : undefined },
                             { label: "🌾 " + t('nav.list_tool'), to: isAuthenticated ? "/add-equipment" : "/login" },
                             { label: "ℹ️  About Us", to: "/about" },
                             { label: "📬 Contact", to: "/contact" },
                             { label: "🔒 Privacy Policy", to: "/privacy" },
                             { label: "📋 Terms of Service", to: "/terms" },
                         ].map(n => (
-                            <Link key={n.to} to={n.to}
+                            <Link key={n.label} to={n.to} state={n.state}
                                 onClick={() => setMobileOpen(false)}
                                 style={{ display: "block", padding: "11px 14px", borderRadius: "10px", fontSize: "14px", fontWeight: 600, color: "#374151", textDecoration: "none", transition: "all 0.15s" }}
                                 onMouseEnter={e => { e.currentTarget.style.background = "#F1F8E9"; e.currentTarget.style.color = "#2E7D32"; }}
@@ -343,6 +343,62 @@ export default function Navbar() {
                                 {n.label}
                             </Link>
                         ))}
+
+                        {/* ── Logged-in user section ── */}
+                        {isAuthenticated && (
+                            <>
+                                <div style={{ height: "1px", background: "#F3F4F6", margin: "8px 0" }} />
+                                {/* Notifications */}
+                                <button
+                                    onClick={() => { setMobileOpen(false); setNotifOpen(true); }}
+                                    style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 14px", borderRadius: "10px", fontSize: "14px", fontWeight: 600, color: "#374151", background: "none", border: "none", width: "100%", cursor: "pointer", textAlign: "left" }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = "#F1F8E9"; e.currentTarget.style.color = "#2E7D32"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = ""; e.currentTarget.style.color = "#374151"; }}
+                                >
+                                    <Bell size={16} />
+                                    🔔 Notifications
+                                    {unreadCount > 0 && (
+                                        <span style={{ marginLeft: "auto", background: "#DC2626", color: "#fff", fontSize: "11px", fontWeight: 800, borderRadius: "99px", padding: "1px 7px", minWidth: "20px", textAlign: "center" }}>
+                                            {unreadCount > 9 ? "9+" : unreadCount}
+                                        </span>
+                                    )}
+                                </button>
+                                {/* My Profile */}
+                                <Link to="/profile" onClick={() => setMobileOpen(false)}
+                                    style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 14px", borderRadius: "10px", fontSize: "14px", fontWeight: 600, color: "#374151", textDecoration: "none" }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = "#F1F8E9"; e.currentTarget.style.color = "#2E7D32"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = ""; e.currentTarget.style.color = "#374151"; }}
+                                >
+                                    <UserCircle2 size={16} /> 👤 My Profile
+                                </Link>
+                                {/* Admin link */}
+                                {isAdmin && (
+                                    <Link to="/admin-dashboard" onClick={() => setMobileOpen(false)}
+                                        style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 14px", borderRadius: "10px", fontSize: "14px", fontWeight: 700, color: "#E65100", textDecoration: "none", background: "#FFF3E0" }}
+                                    >
+                                        <ShieldCheck size={16} /> ⚙️ Admin Dashboard
+                                    </Link>
+                                )}
+                                {/* Logout */}
+                                <button onClick={() => { handleLogout(); setMobileOpen(false); }}
+                                    style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 14px", borderRadius: "10px", fontSize: "14px", fontWeight: 700, color: "#DC2626", background: "#FEF2F2", border: "none", width: "100%", cursor: "pointer", textAlign: "left" }}
+                                >
+                                    <LogOut size={16} /> 🚪 Logout
+                                </button>
+                            </>
+                        )}
+
+                        {/* ── Guest section ── */}
+                        {!isAuthenticated && (
+                            <>
+                                <div style={{ height: "1px", background: "#F3F4F6", margin: "8px 0" }} />
+                                <Link to="/login" onClick={() => setMobileOpen(false)}
+                                    style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "13px", borderRadius: "12px", fontSize: "14px", fontWeight: 700, color: "#fff", textDecoration: "none", background: "#2E7D32" }}
+                                >
+                                    🔑 Login / Register
+                                </Link>
+                            </>
+                        )}
                     </div>
                 )}
             </header>
