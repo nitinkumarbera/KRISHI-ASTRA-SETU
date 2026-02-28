@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
 import SplashScreen from './components/SplashScreen'
+import FloatingNotificationToast from './components/FloatingNotificationToast'
 
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
@@ -34,6 +35,7 @@ function App() {
         <LanguageProvider>
           <Router>
             <KasDialogProvider />
+            <FloatingNotificationToast />
             <div style={{ minHeight: "100vh", background: "#F5F5F5" }}>
               <Navbar />
               <Routes>

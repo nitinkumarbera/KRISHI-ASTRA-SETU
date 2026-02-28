@@ -16,7 +16,8 @@ exports.getMyNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find({ recipient: req.user.id })
             .sort({ createdAt: -1 })
-            .limit(20);
+            .limit(20)
+            .populate('sender', 'name.first name.last documents.passportPhoto role');
 
         res.json({ success: true, data: notifications });
     } catch (err) {
