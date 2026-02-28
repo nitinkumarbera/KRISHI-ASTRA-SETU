@@ -1,3 +1,4 @@
+import API_BASE from '../utils/api';
 import { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { Eye, EyeOff, Leaf, Mail, Lock, ArrowRight } from 'lucide-react';
@@ -57,7 +58,7 @@ export default function Login() {
             // ── Try real backend API first ──────────────────────
             let res, data;
             try {
-                res = await fetch('http://localhost:5000/api/auth/login', {
+                res = await fetch(`${API_BASE}/api/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: form.email.trim().toLowerCase(), password: form.password }),

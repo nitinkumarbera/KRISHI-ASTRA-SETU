@@ -1,3 +1,4 @@
+import API_BASE from '../utils/api';
 import { useState, useEffect, useRef } from 'react';
 import {
     Search, Filter, Map as MapIcon, Grid, Sliders,
@@ -255,7 +256,7 @@ export default function Marketplace() {
             if (selTaluka) params.append('taluka', selTaluka);
             if (selVillage.trim()) params.append('village', selVillage.trim());
 
-            const res = await fetch(`http://localhost:5000/api/equipment/search?${params.toString()}`);
+            const res = await fetch(`${API_BASE}/api/equipment/search?${params.toString()}`);
             const data = await res.json();
             if (res.ok) setItems(data.data || []);
             else setError(data.message || 'Failed to load equipment.');

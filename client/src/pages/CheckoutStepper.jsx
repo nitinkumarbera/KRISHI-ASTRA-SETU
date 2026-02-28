@@ -10,6 +10,7 @@
  * Route: /checkout/:bookingId
  */
 
+import API_BASE from '../utils/api';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
@@ -251,7 +252,7 @@ export default function CheckoutStepper() {
     useEffect(() => {
         async function load() {
             try {
-                const res = await fetch('http://localhost:5000/api/bookings/my', {
+                const res = await fetch(`${API_BASE}/api/bookings/my`, {
                     headers: { 'x-auth-token': authToken }
                 });
                 const data = await res.json();
@@ -262,7 +263,7 @@ export default function CheckoutStepper() {
 
                 // Fetch admin QR (fetch admin profile to get their qrCodeUrl)
                 try {
-                    const adminRes = await fetch('http://localhost:5000/api/admin/qr', {
+                    const adminRes = await fetch(`${API_BASE}/api/admin/qr`, {
                         headers: { 'x-auth-token': authToken }
                     });
                     if (adminRes.ok) {
@@ -525,7 +526,7 @@ export default function CheckoutStepper() {
         setUploading1(true);
         const fd = new FormData(); fd.append('screenshot', lenderFile);
         try {
-            const res = await fetch(`http://localhost:5000/api/payments/lender-proof/${bookingId}`, {
+            const res = await fetch(`${API_BASE}/api/payments/lender-proof/${bookingId}`, {
                 method: 'POST', headers: { 'x-auth-token': authToken }, body: fd
             });
             const data = await res.json();
@@ -542,7 +543,7 @@ export default function CheckoutStepper() {
         setUploading3(true);
         const fd = new FormData(); fd.append('screenshot', adminFile);
         try {
-            const res = await fetch(`http://localhost:5000/api/payments/admin-proof/${bookingId}`, {
+            const res = await fetch(`${API_BASE}/api/payments/admin-proof/${bookingId}`, {
                 method: 'POST', headers: { 'x-auth-token': authToken }, body: fd
             });
             const data = await res.json();

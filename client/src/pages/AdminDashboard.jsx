@@ -1,3 +1,4 @@
+import API_BASE from '../utils/api';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -9,7 +10,7 @@ import {
 import { kasAlert, kasPrompt } from '../components/KasDialog';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
 
-const API = 'http://localhost:5000';
+const API = `${API_BASE}`;
 const C = {
     green: '#2E7D32', lightGreen: '#4CAF50', paleGreen: '#E8F5E9',
     orange: '#F57C00', paleOrange: '#FFF3E0',

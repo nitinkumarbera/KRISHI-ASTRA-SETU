@@ -1,3 +1,4 @@
+import API_BASE from '../utils/api';
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -43,7 +44,7 @@ export default function Navbar() {
     const fetchNotifications = async () => {
         if (!authToken) return;
         try {
-            const res = await fetch('http://localhost:5000/api/notifications', {
+            const res = await fetch(`${API_BASE}/api/notifications`, {
                 headers: { 'x-auth-token': authToken }
             });
             const d = await res.json();
@@ -65,7 +66,7 @@ export default function Navbar() {
 
     const handleNotifClick = async (notif) => {
         if (!notif.isRead) {
-            await fetch(`http://localhost:5000/api/notifications/${notif._id}/read`, {
+            await fetch(`${API_BASE}/api/notifications/${notif._id}/read`, {
                 method: 'PATCH',
                 headers: { 'x-auth-token': authToken }
             });
@@ -76,7 +77,7 @@ export default function Navbar() {
     };
 
     const markAllRead = async () => {
-        await fetch('http://localhost:5000/api/notifications/read-all', {
+        await fetch(`${API_BASE}/api/notifications/read-all`, {
             method: 'POST',
             headers: { 'x-auth-token': authToken }
         });

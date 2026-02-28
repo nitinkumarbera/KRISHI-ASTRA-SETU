@@ -1,6 +1,7 @@
+import API_BASE from '../utils/api';
 import { useEffect, useRef, useState } from 'react';
 
-const API = 'http://localhost:5000';
+const API = `${API_BASE}`;
 
 // Generate or retrieve a persistent session ID for this browser
 function getSessionId() {

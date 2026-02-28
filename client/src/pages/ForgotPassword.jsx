@@ -1,3 +1,4 @@
+import API_BASE from '../utils/api';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Leaf, Mail, Lock, ShieldCheck, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
@@ -40,7 +41,7 @@ export default function ForgotPassword() {
         setLoading(true);
         setApiError('');
         try {
-            const res = await fetch('http://localhost:5000/api/user/forgot-password', {
+            const res = await fetch(`${API_BASE}/api/user/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

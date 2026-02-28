@@ -1,3 +1,4 @@
+import API_BASE from '../utils/api';
 import { useState } from 'react';
 import { kasAlert } from '../components/KasDialog';
 import { Mail, MapPin, Phone, Send } from 'lucide-react';
@@ -26,7 +27,7 @@ export default function Contact() {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5000/api/feedback', {
+            const res = await fetch(`${API_BASE}/api/feedback`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...form, source: 'contact_form' })

@@ -1,6 +1,7 @@
 /* ── Footer.jsx ─────────────────────────────────────────────
    Multi-column professional footer
 ─────────────────────────────────────────────────────────── */
+import API_BASE from '../utils/api';
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -48,7 +49,7 @@ export default function Footer() {
         e.preventDefault();
         if (!feedback.trim()) return;
         try {
-            await fetch('http://localhost:5000/api/feedback', {
+            await fetch(`${API_BASE}/api/feedback`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

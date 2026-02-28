@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import API_BASE from '../utils/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -345,7 +346,7 @@ function DamageReportForm({ bookingId, authToken, onReported }) {
         if (!desc.trim()) { setErr('Please describe the damage.'); return; }
         setSubmitting(true); setErr('');
         try {
-            const res = await fetch(`http://localhost:5000/api/bookings/${bookingId}/damage-report`, {
+            const res = await fetch(`${API_BASE}/api/bookings/${bookingId}/damage-report`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
                 body: JSON.stringify({ description: desc, severity, photos })
@@ -543,7 +544,7 @@ function GeoPhotoUploader({ bookingId, existingPhotos, authToken, onUploaded }) 
         if (!preview) return;
         setUploading(true); setError('');
         try {
-            const res = await fetch(`http://localhost:5000/api/bookings/${bookingId}/rental-photos`, {
+            const res = await fetch(`${API_BASE}/api/bookings/${bookingId}/rental-photos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
                 body: JSON.stringify({ photos: [preview] })
@@ -669,7 +670,7 @@ function SecuritySection({ user, authToken, refreshUser, onAccountDeleted }) {
         if (!deleteAccPassword.trim()) { setDeleteAccMsg('⚠️ Please enter your password.'); return; }
         setDeleteAccLoading(true);
         try {
-            const res = await fetch('http://localhost:5000/api/user/account', {
+            const res = await fetch(`${API_BASE}/api/user/account`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
                 body: JSON.stringify({ password: deleteAccPassword })
@@ -692,7 +693,7 @@ function SecuritySection({ user, authToken, refreshUser, onAccountDeleted }) {
     const handleEmailChange = async () => {
         setSecEmail(s => ({ ...s, loading: true, error: '', success: '' }));
         try {
-            const res = await fetch('http://localhost:5000/api/user/change-email', {
+            const res = await fetch(`${API_BASE}/api/user/change-email`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
                 body: JSON.stringify({ currentPassword: secEmail.password, newEmail: secEmail.newEmail }),
@@ -718,7 +719,7 @@ function SecuritySection({ user, authToken, refreshUser, onAccountDeleted }) {
         }
         setSecPass(s => ({ ...s, loading: true, error: '', success: '' }));
         try {
-            const res = await fetch('http://localhost:5000/api/user/change-password', {
+            const res = await fetch(`${API_BASE}/api/user/change-password`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
                 body: JSON.stringify({ currentPassword: secPass.currentPassword, newPassword: secPass.newPassword }),
@@ -992,7 +993,7 @@ export default function Profile() {
         try {
             const fd = new FormData();
             fd.append('qrCodeImage', file);
-            const res = await fetch('http://localhost:5000/api/user/update-qr', {
+            const res = await fetch(`${API_BASE}/api/user/update-qr`, {
                 method: 'PATCH',
                 headers: { 'x-auth-token': authToken },
                 body: fd
@@ -1026,9 +1027,9 @@ export default function Profile() {
             const headers = { 'x-auth-token': authToken };
 
             const [resRentals, resEquip, resLender] = await Promise.all([
-                fetch('http://localhost:5000/api/bookings/my', { headers }),
-                fetch('http://localhost:5000/api/equipment/my', { headers }),
-                fetch('http://localhost:5000/api/bookings/lender', { headers })
+                fetch(`${API_BASE}/api/bookings/my`, { headers }),
+                fetch(`${API_BASE}/api/equipment/my`, { headers }),
+                fetch(`${API_BASE}/api/bookings/lender`, { headers })
             ]);
 
             const dRentals = await resRentals.json();
@@ -1047,7 +1048,7 @@ export default function Profile() {
 
     const toggleEquipStatus = async (id) => {
         try {
-            const res = await fetch(`http://localhost:5000/api/equipment/${id}/toggle`, {
+            const res = await fetch(`${API_BASE}/api/equipment/${id}/toggle`, {
                 method: 'PATCH',
                 headers: { 'x-auth-token': authToken }
             });
@@ -1063,7 +1064,7 @@ export default function Profile() {
         e.preventDefault();
         setSubmittingReview(true);
         try {
-            const res = await fetch('http://localhost:5000/api/reviews', {
+            const res = await fetch(`${API_BASE}/api/reviews`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1168,7 +1169,7 @@ export default function Profile() {
             if (editFiles.passportPhoto) fd.append('passportPhoto', editFiles.passportPhoto);
             if (editFiles.passbookImage) fd.append('passbookImage', editFiles.passbookImage);
 
-            const res = await fetch('http://localhost:5000/api/user/edit-profile', {
+            const res = await fetch(`${API_BASE}/api/user/edit-profile`, {
                 method: 'PATCH',
                 headers: { 'x-auth-token': authToken },
                 body: fd
@@ -1718,7 +1719,7 @@ export default function Profile() {
                                                 onClick={async () => {
                                                     const reason = await kasPrompt('Reason for cancellation (optional — press OK to confirm):');
                                                     if (reason === null) return; // user pressed Cancel in prompt
-                                                    const res = await fetch(`http://localhost:5000/api/bookings/${b._id}/cancel`, {
+                                                    const res = await fetch(`${API_BASE}/api/bookings/${b._id}/cancel`, {
                                                         method: 'PATCH',
                                                         headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
                                                         body: JSON.stringify({ reason: reason || 'Cancelled by renter' })
@@ -1750,7 +1751,7 @@ export default function Profile() {
                                                     onClick={async () => {
                                                         const confirmed = await kasPrompt('Confirm that you have physically returned the equipment to the lender? (Type YES to confirm)');
                                                         if (!confirmed || confirmed.trim().toLowerCase() !== 'yes') return;
-                                                        const res = await fetch(`http://localhost:5000/api/bookings/${b._id}/confirm-return`, {
+                                                        const res = await fetch(`${API_BASE}/api/bookings/${b._id}/confirm-return`, {
                                                             method: 'PATCH', headers: { 'x-auth-token': authToken }
                                                         });
                                                         if (res.ok) { fetchDashboardData(); }
@@ -1955,7 +1956,7 @@ export default function Profile() {
                                                         onClick={async () => {
                                                             const tok = await kasPrompt('Enter the 6-digit Handover Token from Renter:');
                                                             if (tok) {
-                                                                fetch('http://localhost:5000/api/bookings/verify-handover', {
+                                                                fetch(`${API_BASE}/api/bookings/verify-handover`, {
                                                                     method: 'POST',
                                                                     headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
                                                                     body: JSON.stringify({ bookingId: r._id, enteredToken: tok })
@@ -1974,7 +1975,7 @@ export default function Profile() {
                                                     onClick={async () => {
                                                         const reason = await kasPrompt('Reason for cancellation (optional — press OK to confirm):');
                                                         if (reason === null) return;
-                                                        const res = await fetch(`http://localhost:5000/api/bookings/${r._id}/cancel`, {
+                                                        const res = await fetch(`${API_BASE}/api/bookings/${r._id}/cancel`, {
                                                             method: 'PATCH',
                                                             headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
                                                             body: JSON.stringify({ reason: reason || 'Cancelled by lender' })
@@ -2072,7 +2073,7 @@ export default function Profile() {
                                                                 : 'Mark this rental as Completed? The equipment will become available again.';
                                                             const ok = await kasPrompt(`${confirmMsg} (Type YES to confirm)`);
                                                             if (!ok || ok.trim().toLowerCase() !== 'yes') return;
-                                                            const res = await fetch(`http://localhost:5000/api/bookings/${r._id}/complete`, {
+                                                            const res = await fetch(`${API_BASE}/api/bookings/${r._id}/complete`, {
                                                                 method: 'PATCH',
                                                                 headers: { 'x-auth-token': authToken }
                                                             });

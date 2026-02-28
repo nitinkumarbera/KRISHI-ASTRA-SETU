@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import API_BASE from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import {
     ChevronRight, ChevronLeft, Check, MapPin, Camera, Upload,
@@ -1058,7 +1059,7 @@ export default function AddEquipment() {
             });
 
 
-            const res = await fetch('http://localhost:5000/api/equipment/add', {
+            const res = await fetch(`${API_BASE}/api/equipment/add`, {
                 method: 'POST',
                 headers: { 'x-auth-token': token },
                 body: fd,

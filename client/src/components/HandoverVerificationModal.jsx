@@ -14,6 +14,7 @@
  *   />
  */
 
+import API_BASE from '../utils/api';
 import { useState } from 'react';
 import { X, ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { kasAlert } from './KasDialog';
@@ -35,7 +36,7 @@ export default function HandoverVerificationModal({
         setLoading(true);
         setError('');
         try {
-            const res = await fetch(`http://localhost:5000/api/payments/verify-handover/${bookingId}`, {
+            const res = await fetch(`${API_BASE}/api/payments/verify-handover/${bookingId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
                 body: JSON.stringify({ code: cleaned })

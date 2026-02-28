@@ -1,3 +1,4 @@
+import API_BASE from '../utils/api';
 import { createContext, useState, useEffect, useContext } from 'react';
 
 // ── Create context ────────────────────────────────────────────
@@ -26,7 +27,7 @@ export function AuthProvider({ children }) {
                 setUser(parsed);
 
                 // Re-validate against the real API (silent refresh)
-                fetch('http://localhost:5000/api/user/profile', {
+                fetch(`${API_BASE}/api/user/profile`, {
                     headers: { 'x-auth-token': savedToken }
                 })
                     .then(r => r.ok ? r.json() : null)
@@ -66,7 +67,7 @@ export function AuthProvider({ children }) {
     const refreshUser = async () => {
         if (!token) return;
         try {
-            const res = await fetch('http://localhost:5000/api/user/profile', {
+            const res = await fetch(`${API_BASE}/api/user/profile`, {
                 headers: { 'x-auth-token': token }
             });
             if (res.ok) {

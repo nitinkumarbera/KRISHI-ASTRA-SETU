@@ -6,6 +6,7 @@
  * Mirrors AnalyticsDashboard look but scoped to the current user.
  */
 
+import API_BASE from '../utils/api';
 import { useState, useEffect, useMemo } from 'react';
 import {
     AreaChart, Area, BarChart, Bar, ComposedChart, Line,
@@ -183,7 +184,7 @@ export default function UserAnalytics({ authToken, userName }) {
     useEffect(() => {
         if (!authToken) return;
         setLoading(true);
-        fetch('http://localhost:5000/api/user/my-analytics', { headers: { 'x-auth-token': authToken } })
+        fetch(`${API_BASE}/api/user/my-analytics`, { headers: { 'x-auth-token': authToken } })
             .then(r => r.json())
             .then(d => { if (d.success) setAnalytics(d.data); })
             .catch(() => { })
@@ -378,7 +379,7 @@ export default function UserAnalytics({ authToken, userName }) {
                     <p style={{ color: '#6B7280', fontSize: '13px', margin: 0 }}>Your personal rental &amp; lending performance</p>
                 </div>
                 <div style={{ display: 'flex', gap: '7px', alignItems: 'center', flexShrink: 0 }}>
-                    <button onClick={() => { setLoading(true); fetch('http://localhost:5000/api/user/my-analytics', { headers: { 'x-auth-token': authToken } }).then(r => r.json()).then(d => { if (d.success) setAnalytics(d.data) }).finally(() => setLoading(false)); }}
+                    <button onClick={() => { setLoading(true); fetch(`${API_BASE}/api/user/my-analytics`, { headers: { 'x-auth-token': authToken } }).then(r => r.json()).then(d => { if (d.success) setAnalytics(d.data) }).finally(() => setLoading(false)); }}
                         style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '8px', border: `1.5px solid ${G}`, background: '#fff', color: G, fontWeight: 700, fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                         <RefreshCw size={12} /> Refresh
                     </button>

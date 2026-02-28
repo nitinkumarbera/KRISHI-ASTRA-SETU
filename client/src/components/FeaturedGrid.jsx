@@ -1,10 +1,11 @@
+import API_BASE from '../utils/api';
 import { useState, useEffect } from "react";
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import EquipmentCard from "./EquipmentCard";
 
-const API = 'http://localhost:5000';
+const API = `${API_BASE}`;
 
 export default function FeaturedGrid() {
     const { user } = useAuth();

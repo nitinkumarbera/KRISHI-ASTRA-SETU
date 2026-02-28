@@ -1,3 +1,4 @@
+import API_BASE from '../utils/api';
 import { useState, useMemo, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
@@ -70,7 +71,7 @@ export default function Booking() {
                 const { bookingId: bid, token: tok } = JSON.parse(saved);
                 if (bid && authToken) {
                     // Verify the booking is still pending/active before restoring
-                    fetch(`http://localhost:5000/api/bookings/my`, {
+                    fetch(`${API_BASE}/api/bookings/my`, {
                         headers: { 'x-auth-token': authToken }
                     }).then(r => r.json()).then(data => {
                         const bookings = data.data || [];
@@ -96,7 +97,7 @@ export default function Booking() {
     useEffect(() => {
         const fetchEquip = async () => {
             try {
-                const res = await fetch(`http://localhost:5000/api/equipment/${id}`);
+                const res = await fetch(`${API_BASE}/api/equipment/${id}`);
                 const data = await res.json();
                 if (data.success) {
                     setEquip(data.data);
@@ -153,7 +154,7 @@ export default function Booking() {
         setApiError('');
 
         try {
-            const res = await fetch('http://localhost:5000/api/bookings/create', {
+            const res = await fetch(`${API_BASE}/api/bookings/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -194,7 +195,7 @@ export default function Booking() {
         if (!bookingId) return;
         setCancelling(true);
         try {
-            const res = await fetch(`http://localhost:5000/api/bookings/${bookingId}/cancel`, {
+            const res = await fetch(`${API_BASE}/api/bookings/${bookingId}/cancel`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': authToken },
                 body: JSON.stringify({ reason: cancelReason || 'Cancelled by renter' })
@@ -218,7 +219,7 @@ export default function Booking() {
         // Fetch fresh renter profile so all address/finance fields are present
         let renterProfile = currentUser || {};
         try {
-            const res = await fetch('http://localhost:5000/api/user/profile', {
+            const res = await fetch(`${API_BASE}/api/user/profile`, {
                 headers: { 'x-auth-token': authToken }
             });
             if (res.ok) {
